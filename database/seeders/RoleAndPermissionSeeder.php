@@ -63,6 +63,8 @@ class RoleAndPermissionSeeder extends Seeder
             'view_department_dashboard',
             'view_own_laporan',
             'create_laporan',
+            'edit_laporan',
+            'delete_laporan',
         ]);
 
         // Assign permissions to operator (pengganti dari karyawan)
