@@ -19,8 +19,8 @@
                         <th style="width: 120px;">Tanggal</th>
                         <th>Mesin</th>
                         <th style="width: 130px;">Line</th>
-                        <th style="width: 150px;">Jenis Pekerjaan</th>
-                        <th style="width: 120px;">Tipe Laporan</th>
+                        <th style="width: 150px;">Tipe Laporan</th>
+                        <th style="width: 120px;">Jenis Pekerjaan</th>
                         <th style="width: 120px;" class="text-center">Downtime</th>
                         <th style="width: 180px;" class="text-center">Aksi</th>
                     </tr>
@@ -36,25 +36,33 @@
                             </td>
                             <td>
                                 @if($item->line)
-                                    <span class="badge bg-primary">{{ $item->line }}</span>
+                                    <span class="badge" style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: white;">{{ $item->line }}</span>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
                             <td>
-                                <span class="badge bg-info text-dark">{{ ucfirst($item->tipe_laporan) }}</span>
+                                @php
+                                    $tipeLaporanColor = match($item->tipe_laporan) {
+                                        'harian' => '#3498db',      // Blue
+                                        'mingguan' => '#9b59b6',    // Purple
+                                        'bulanan' => '#e74c3c',     // Red
+                                        default => '#95a5a6'        // Gray
+                                    };
+                                @endphp
+                                <span class="badge text-white" style="background-color: {{ $tipeLaporanColor }};">{{ ucfirst($item->tipe_laporan) }}</span>
                             </td>
                             <td>
                                 @php
-                                    $jenisPekerjaan = match($item->jenis_pekerjaan) {
-                                        'corrective' => 'danger',
-                                        'preventive' => 'warning',
-                                        'modifikasi' => 'info',
-                                        'utility' => 'secondary',
-                                        default => 'secondary'
+                                    $jenisPekerjaanStyle = match($item->jenis_pekerjaan) {
+                                        'corrective' => 'background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);',      // Red
+                                        'preventive' => 'background: linear-gradient(135deg, #f39c12 0%, #d68910 100%);',     // Orange
+                                        'modifikasi' => 'background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);',     // Blue
+                                        'utility' => 'background: linear-gradient(135deg, #16a085 0%, #138d75 100%);',        // Teal
+                                        default => 'background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);'           // Gray
                                     };
                                 @endphp
-                                <span class="badge bg-{{ $jenisPekerjaan }}">{{ ucfirst($item->jenis_pekerjaan) }}</span>
+                                <span class="badge text-white" style="{{ $jenisPekerjaanStyle }}">{{ ucfirst($item->jenis_pekerjaan) }}</span>
                             </td>
                             <td class="text-center">
                                 <span class="badge bg-secondary">{{ $item->downtime_min }} min</span>

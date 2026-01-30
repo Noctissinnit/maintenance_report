@@ -72,17 +72,32 @@
                 @error('komentar_sparepart')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
-            <div class="mb-3">
-                <label for="jenis_pekerjaan" class="form-label">Jenis Pekerjaan <span class="text-danger">*</span></label>
-                <select class="form-select @error('jenis_pekerjaan') is-invalid @enderror" 
-                    id="jenis_pekerjaan" name="jenis_pekerjaan" required onchange="toggleTimeFields()">
-                    <option value="">-- Pilih Jenis Pekerjaan --</option>
-                    <option value="corrective" @selected(old('jenis_pekerjaan') === 'corrective')>Corrective</option>
-                    <option value="preventive" @selected(old('jenis_pekerjaan') === 'preventive')>Preventive</option>
-                    <option value="modifikasi" @selected(old('jenis_pekerjaan') === 'modifikasi')>Modifikasi</option>
-                    <option value="utility" @selected(old('jenis_pekerjaan') === 'utility')>Utility</option>
-                </select>
-                @error('jenis_pekerjaan')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="jenis_pekerjaan" class="form-label">Jenis Pekerjaan <span class="text-danger">*</span></label>
+                    <select class="form-select @error('jenis_pekerjaan') is-invalid @enderror" 
+                        id="jenis_pekerjaan" name="jenis_pekerjaan" required onchange="toggleTimeFields()">
+                        <option value="">-- Pilih Jenis Pekerjaan --</option>
+                        <option value="corrective" @selected(old('jenis_pekerjaan') === 'corrective')>Corrective</option>
+                        <option value="preventive" @selected(old('jenis_pekerjaan') === 'preventive')>Preventive</option>
+                        <option value="modifikasi" @selected(old('jenis_pekerjaan') === 'modifikasi')>Modifikasi</option>
+                        <option value="utility" @selected(old('jenis_pekerjaan') === 'utility')>Utility</option>
+                    </select>
+                    @error('jenis_pekerjaan')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="scope" class="form-label">Scope <span class="text-danger">*</span></label>
+                    <select class="form-select @error('scope') is-invalid @enderror" 
+                        id="scope" name="scope" required>
+                        <option value="">-- Pilih Scope --</option>
+                        <option value="Electrik" @selected(old('scope') === 'Electrik')>Electrik</option>
+                        <option value="Mekanik" @selected(old('scope') === 'Mekanik')>Mekanik</option>
+                        <option value="Utility" @selected(old('scope') === 'Utility')>Utility</option>
+                        <option value="Building" @selected(old('scope') === 'Building')>Building</option>
+                    </select>
+                    @error('scope')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
             </div>
 
              <div id="timeFieldsContainer" class="row" style="display: none;">
@@ -100,22 +115,11 @@
                     @error('end_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
 
-                 <div class="col-md-6 mb-3">
+                <div class="col-md-6 mb-3">
                     <label for="downtime_min" class="form-label">Downtime (Menit)</label>
                     <input type="number" class="form-control @error('downtime_min') is-invalid @enderror" 
                         id="downtime_min" name="downtime_min" value="{{ old('downtime_min', 0) }}" min="0" readonly>
                     @error('downtime_min')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                </div>
-            </div>
-
-             <div class="row">
-               
-
-                <div class="col-md-6 mb-3">
-                    <label for="between_failure_min" class="form-label">Between Failure (Menit)</label>
-                    <input type="number" class="form-control @error('between_failure_min') is-invalid @enderror" 
-                        id="between_failure_min" name="between_failure_min" value="{{ old('between_failure_min', 0) }}" min="0">
-                    @error('between_failure_min')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
             </div>
 
@@ -164,7 +168,7 @@
         const startTimeInput = document.getElementById('start_time');
         const endTimeInput = document.getElementById('end_time');
         
-        if (jenisPekerjaan === 'corrective') {
+        if (jenisPekerjaan === 'corrective' || jenisPekerjaan === 'preventive') {
             timeFieldsContainer.style.display = 'contents';
             startTimeInput.required = true;
         } else {

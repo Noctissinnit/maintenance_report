@@ -93,10 +93,10 @@ class LaporanHarianController extends Controller
             'qty_sparepart' => 'integer|min:0',
             'komentar_sparepart' => 'nullable|string',
             'jenis_pekerjaan' => 'required|in:corrective,preventive,modifikasi,utility',
+            'scope' => 'required|in:Electrik,Mekanik,Utility,Building',
             'start_time' => 'nullable|date_format:Y-m-d\TH:i',
             'end_time' => 'nullable|date_format:Y-m-d\TH:i|after:start_time',
             'downtime_min' => 'integer|min:0',
-            'between_failure_min' => 'integer|min:0',
             'tipe_laporan' => 'in:harian,mingguan,bulanan',
             'tanggal_laporan' => 'required|date',
         ]);
@@ -115,8 +115,8 @@ class LaporanHarianController extends Controller
             $validated['line'] = $line->name;
         }
 
-        // Calculate downtime for corrective type only
-        if ($validated['jenis_pekerjaan'] === 'corrective' && isset($validated['start_time']) && isset($validated['end_time'])) {
+        // Calculate downtime for corrective and preventive types
+        if (($validated['jenis_pekerjaan'] === 'corrective' || $validated['jenis_pekerjaan'] === 'preventive') && isset($validated['start_time']) && isset($validated['end_time'])) {
             $start = \Carbon\Carbon::createFromFormat('Y-m-d\TH:i', $validated['start_time']);
             $end = \Carbon\Carbon::createFromFormat('Y-m-d\TH:i', $validated['end_time']);
             $validated['downtime_min'] = (int) $start->diffInMinutes($end);
@@ -189,10 +189,10 @@ class LaporanHarianController extends Controller
             'qty_sparepart' => 'integer|min:0',
             'komentar_sparepart' => 'nullable|string',
             'jenis_pekerjaan' => 'required|in:corrective,preventive,modifikasi,utility',
+            'scope' => 'required|in:Electrik,Mekanik,Utility,Building',
             'start_time' => 'nullable|date_format:Y-m-d\TH:i',
             'end_time' => 'nullable|date_format:Y-m-d\TH:i|after:start_time',
             'downtime_min' => 'integer|min:0',
-            'between_failure_min' => 'integer|min:0',
             'tipe_laporan' => 'in:harian,mingguan,bulanan',
             'tanggal_laporan' => 'required|date',
         ]);
@@ -209,8 +209,8 @@ class LaporanHarianController extends Controller
             $validated['line'] = $line->name;
         }
 
-        // Calculate downtime for corrective type only
-        if ($validated['jenis_pekerjaan'] === 'corrective' && isset($validated['start_time']) && isset($validated['end_time'])) {
+        // Calculate downtime for corrective and preventive types
+        if (($validated['jenis_pekerjaan'] === 'corrective' || $validated['jenis_pekerjaan'] === 'preventive') && isset($validated['start_time']) && isset($validated['end_time'])) {
             $start = \Carbon\Carbon::createFromFormat('Y-m-d\TH:i', $validated['start_time']);
             $end = \Carbon\Carbon::createFromFormat('Y-m-d\TH:i', $validated['end_time']);
             $validated['downtime_min'] = (int) $start->diffInMinutes($end);

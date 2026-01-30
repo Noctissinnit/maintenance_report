@@ -24,10 +24,11 @@ return new class extends Migration
             $table->integer('qty_sparepart')->default(0);
             $table->text('komentar_sparepart')->nullable();
             $table->string('status')->default('scheduled'); // scheduled, running, stopped, completed
-            $table->dateTime('waktu_mulai');
-            $table->dateTime('waktu_selesai')->nullable();
+            $table->string('jenis_pekerjaan')->nullable(); // corrective, preventive, modifikasi, utility
+            $table->string('scope')->nullable(); // Electrik, Mekanik, Utility, Building
+            $table->dateTime('start_time')->nullable();
+            $table->dateTime('end_time')->nullable();
             $table->integer('downtime_min')->default(0);
-            $table->integer('between_failure_min')->default(0);
             $table->string('tipe_laporan')->default('harian'); // harian, mingguan, bulanan
             $table->date('tanggal_laporan');
             $table->timestamps();

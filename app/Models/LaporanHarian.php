@@ -22,10 +22,10 @@ class LaporanHarian extends Model
         'komentar_sparepart',
         'status',
         'jenis_pekerjaan',
+        'scope',
         'start_time',
         'end_time',
         'downtime_min',
-        'between_failure_min',
         'tipe_laporan',
         'tanggal_laporan',
     ];
