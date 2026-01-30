@@ -357,6 +357,168 @@
     </div>
 </div>
 
+<!-- MTBF Metrics Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h5 class="mb-3">
+            <i class="bi bi-speedometer2" style="color: var(--primary-color);"></i> 
+            <span style="color: var(--text-dark); font-weight: 600;">MTBF (Mean Time Between Failures) Analysis</span>
+        </h5>
+    </div>
+    
+    <!-- MTBF Statistics -->
+    <div class="col-md-4">
+        <div class="card performance-card">
+            <div class="card-body text-center">
+                <div class="performance-icon"><i class="bi bi-graph-up"></i></div>
+                <div class="performance-label">Average MTBF</div>
+                <div class="performance-value">{{ number_format($avgMTBFHours, 2) }}</div>
+                <div class="performance-unit">jam</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card performance-card">
+            <div class="card-body text-center">
+                <div class="performance-icon"><i class="bi bi-check-circle"></i></div>
+                <div class="performance-label">Machines with Data</div>
+                <div class="performance-value">{{ count($mtbfData) }}</div>
+                <div class="performance-unit">mesin</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card performance-card">
+            <div class="card-body text-center">
+                <div class="performance-icon"><i class="bi bi-link-45deg"></i></div>
+                <div class="performance-label">View Full</div>
+                <a href="{{ route('mtbf.index') }}" class="btn btn-sm btn-primary mt-2">
+                    MTBF Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Reliable & Worst Machines -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <i class="bi bi-trophy"></i> Top 5 Most Reliable Machines
+            </div>
+            <div class="card-body">
+                @if(count($topReliableMachines) > 0)
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Mesin</th>
+                                    <th class="text-center">MTBF (hrs)</th>
+                                    <th class="text-center">Failures</th>
+                                    <th class="text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($topReliableMachines as $machine)
+                                    @php
+                                        if ($machine['mtbf_hours'] >= 168) {
+                                            $badgeClass = 'bg-success';
+                                            $status = 'Excellent';
+                                        } elseif ($machine['mtbf_hours'] >= 72) {
+                                            $badgeClass = 'bg-info';
+                                            $status = 'Good';
+                                        } else {
+                                            $badgeClass = 'bg-warning';
+                                            $status = 'Fair';
+                                        }
+                                    @endphp
+                                    <tr>
+                                        <td>
+                                            <strong>{{ $machine['machine_name'] }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ $machine['line_name'] ?? 'N/A' }}</small>
+                                        </td>
+                                        <td class="text-center">
+                                            <strong>{{ number_format($machine['mtbf_hours'], 2) }}</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-danger">{{ $machine['failure_count'] }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge {{ $badgeClass }}">{{ $status }}</span>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="alert alert-info">Tidak ada data MTBF untuk mesin</div>
+                @endif
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <i class="bi bi-exclamation-triangle"></i> Bottom 5 Worst Performing Machines
+            </div>
+            <div class="card-body">
+                @if(count($worstMachines) > 0)
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Mesin</th>
+                                    <th class="text-center">MTBF (hrs)</th>
+                                    <th class="text-center">Failures</th>
+                                    <th class="text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($worstMachines as $machine)
+                                    @php
+                                        if ($machine['mtbf_hours'] < 24) {
+                                            $badgeClass = 'bg-danger';
+                                            $status = 'Poor';
+                                        } elseif ($machine['mtbf_hours'] < 72) {
+                                            $badgeClass = 'bg-warning';
+                                            $status = 'Fair';
+                                        } else {
+                                            $badgeClass = 'bg-info';
+                                            $status = 'Good';
+                                        }
+                                    @endphp
+                                    <tr>
+                                        <td>
+                                            <strong>{{ $machine['machine_name'] }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ $machine['line_name'] ?? 'N/A' }}</small>
+                                        </td>
+                                        <td class="text-center">
+                                            <strong>{{ number_format($machine['mtbf_hours'], 2) }}</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-danger">{{ $machine['failure_count'] }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge {{ $badgeClass }}">{{ $status }}</span>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="alert alert-info">Tidak ada data MTBF untuk mesin</div>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Top 10 & Top 7 Tables Row 1 -->
 <div class="row mb-4">
     <div class="col-md-6">

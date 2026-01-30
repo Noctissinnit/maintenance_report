@@ -9,6 +9,7 @@ use App\Http\Controllers\SparePartController;
 use App\Http\Controllers\MachineController;
 use App\Http\Controllers\LineController;
 use App\Http\Controllers\TemplateExportController;
+use App\Http\Controllers\MTBFController;
 
 Route::get('/', function () {
     return redirect()->route('dashboard');
@@ -76,6 +77,10 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/spare-parts/import', [SparePartController::class, 'import'])->name('spare-parts.import');
         Route::get('/spare-parts/monitoring', [SparePartController::class, 'monitoring'])->name('spare-parts.monitoring');
     });
+    
+    // MTBF Analysis Routes
+    Route::get('/mtbf', [MTBFController::class, 'index'])->name('mtbf.index');
+    Route::get('/machines/{machine}/mtbf', [MTBFController::class, 'show'])->name('mtbf.show');
     
     // Logout
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');

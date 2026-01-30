@@ -706,6 +706,14 @@
                 </a>
             @endif
 
+            {{-- MTBF Analysis untuk semua role --}}
+            @if(Auth::user()->can('view_own_laporan'))
+                <div class="sidebar-nav-title">Analytics</div>
+                <a href="{{ route('mtbf.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'mtbf.index' || Route::current()->getName() === 'mtbf.show') active @endif">
+                    <i class="bi bi-speedometer2"></i> MTBF Analysis
+                </a>
+            @endif
+
             {{-- Management Menu untuk Admin saja --}}
             @if(Auth::user()->can('manage_employees'))
                 <div class="sidebar-nav-title">Management</div>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\LaporanHarian;
+use App\Models\Machine;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -188,6 +189,33 @@ class DashboardController extends Controller
         $allMesins = LaporanHarian::distinct()->pluck('mesin_name')->sort();
         $allLines = LaporanHarian::distinct()->pluck('line')->sort();
 
+        // MTBF Metrics dari Machine Model
+        $machines = Machine::where('status', 'active')->with('line')->get();
+        $mtbfData = [];
+        $totalMTBFHours = 0;
+        $mtbfMachineCount = 0;
+
+        foreach ($machines as $machine) {
+            $mtbf = $machine->calculateMTBF();
+            if ($mtbf['failure_count'] > 0) {
+                $mtbfData[] = $mtbf;
+                $totalMTBFHours += $mtbf['mtbf_hours'];
+                $mtbfMachineCount++;
+            }
+        }
+
+        // Sort by MTBF descending
+        usort($mtbfData, function ($a, $b) {
+            return $b['mtbf_hours'] <=> $a['mtbf_hours'];
+        });
+
+        // Average MTBF dari actual calculation
+        $avgMTBFHours = $mtbfMachineCount > 0 ? $totalMTBFHours / $mtbfMachineCount : 0;
+
+        // Get top machines by reliability
+        $topReliableMachines = array_slice($mtbfData, 0, 5);
+        $worstMachines = array_slice(array_reverse($mtbfData), 0, 5);
+
         return view('dashboard.department-head', compact(
             'totalLaporan',
             'totalDowntime',
@@ -211,7 +239,11 @@ class DashboardController extends Controller
             'mesin',
             'line',
             'allMesins',
-            'allLines'
+            'allLines',
+            'mtbfData',
+            'avgMTBFHours',
+            'topReliableMachines',
+            'worstMachines'
         ));
     }
 

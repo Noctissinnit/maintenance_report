@@ -56,6 +56,9 @@
                                 </td>
                                 <td>{{ $machine->created_at->format('d/m/Y H:i') }}</td>
                                 <td>
+                                    <a href="{{ route('mtbf.show', $machine->id) }}" class="btn btn-sm btn-info" title="View MTBF Analysis">
+                                        <i class="bi bi-graph-up"></i>
+                                    </a>
                                     <a href="{{ route('machines.edit', $machine->id) }}" class="btn btn-sm btn-primary">Edit</a>
                                     <form action="{{ route('machines.destroy', $machine->id) }}" method="POST" style="display: inline;">
                                         @csrf
