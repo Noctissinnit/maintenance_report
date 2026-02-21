@@ -6,9 +6,14 @@
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-gradient d-flex justify-content-between align-items-center border-0" style="background: linear-gradient(135deg, #2c5f2d 0%, #1e3f1f 100%);">
         <h4 class="mb-0 text-white">Daftar Laporan Anda</h4>
-        <a href="{{ route('laporan.create') }}" class="btn btn-light btn-sm fw-semibold">
-            <i class="bi bi-plus-circle"></i> Input Laporan Baru
-        </a>
+        <div>
+            <a href="{{ route('laporan.import-form') }}" class="btn btn-light btn-sm fw-semibold">
+                <i class="bi bi-upload"></i> Import Excel
+            </a>
+            <a href="{{ route('laporan.create') }}" class="btn btn-light btn-sm fw-semibold">
+                <i class="bi bi-plus-circle"></i> Input Laporan Baru
+            </a>
+        </div>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
