@@ -54,6 +54,7 @@ class Machine extends Model
             'total_downtime_hours' => round($totalDowntimeHours, 2),
             'mtbf_hours' => round($mtbf, 2),
             'mtbf_days' => round($mtbf / 24, 2),
+            'line_name' => $this->line ? $this->line->name : 'Line Tidak Diketahui',
         ];
     }
 }

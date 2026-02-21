@@ -151,7 +151,7 @@
            
             <div class="mt-4">
                 <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-save"></i> Simpan Laporan
+                    <i class="bi bi-save"></i> Kirim Laporan
                 </button>
                 <a href="{{ route('laporan.index') }}" class="btn btn-secondary">
                     <i class="bi bi-arrow-left"></i> Kembali

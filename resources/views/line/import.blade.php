@@ -1,9 +1,9 @@
 @extends('layouts.app')
 
-@section('title', 'Import Mesin - Sistem Laporan Maintenance')
+@section('title', 'Import Line - Sistem Laporan Maintenance')
 
 @section('content')
-<h2 class="mb-4">Import Data Mesin dari Excel</h2>
+<h2 class="mb-4">Import Data Line dari Excel</h2>
 
 <div class="row">
     <div class="col-md-8">
@@ -14,11 +14,10 @@
             <div class="card-body">
                 <p>File Excel harus memiliki kolom dengan header berikut (baris pertama):</p>
                 <ul>
-                    <li><strong>name</strong> - Nama mesin (wajib, harus unik)</li>
-                    <li><strong>code</strong> - Kode mesin (opsional, harus unik jika diisi)</li>
-                    <li><strong>line_name</strong> - Nama line (wajib, harus sudah ada di database)</li>
-                    <li><strong>description</strong> - Deskripsi mesin (opsional)</li>
-                    <li><strong>status</strong> - Status mesin (opsional: active/inactive, default: active)</li>
+                    <li><strong>name</strong> - Nama line (wajib, harus unik)</li>
+                    <li><strong>code</strong> - Kode line (opsional, harus unik jika diisi)</li>
+                    <li><strong>description</strong> - Deskripsi line (opsional)</li>
+                    <li><strong>status</strong> - Status line (opsional: active/inactive, default: active)</li>
                 </ul>
                 <p class="text-muted mt-3"><strong>Contoh:</strong></p>
                 <table class="table table-sm table-bordered">
@@ -26,24 +25,21 @@
                         <tr>
                             <th>name</th>
                             <th>code</th>
-                            <th>line_name</th>
                             <th>description</th>
                             <th>status</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td>Mesin Produksi A1</td>
-                            <td>MPA001</td>
                             <td>Line A</td>
-                            <td>Mesin utama line A</td>
+                            <td>LA001</td>
+                            <td>Lini Produksi A</td>
                             <td>active</td>
                         </tr>
                         <tr>
-                            <td>Mesin Produksi B1</td>
-                            <td>MPB001</td>
                             <td>Line B</td>
-                            <td>Mesin utama line B</td>
+                            <td>LB001</td>
+                            <td>Lini Produksi B</td>
                             <td>active</td>
                         </tr>
                     </tbody>
@@ -56,7 +52,7 @@
                 <h5 class="mb-0">Upload File</h5>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ route('machines.import') }}" enctype="multipart/form-data">
+                <form method="POST" action="{{ route('lines.import') }}" enctype="multipart/form-data">
                     @csrf
 
                     <div class="mb-3">
@@ -79,14 +75,14 @@
 
                     <div class="alert alert-warning" role="alert">
                         <i class="bi bi-info-circle"></i>
-                        <strong>Perhatian!</strong> Nama line harus sudah ada di database. Nama dan kode mesin harus unik.
+                        <strong>Perhatian!</strong> Data yang sudah ada tidak akan dihapus. Nama dan kode line harus unik.
                     </div>
 
                     <div class="mb-3">
                         <button type="submit" class="btn btn-success">
                             <i class="bi bi-upload"></i> Import Data
                         </button>
-                        <a href="{{ route('machines.index') }}" class="btn btn-secondary">
+                        <a href="{{ route('lines.index') }}" class="btn btn-secondary">
                             <i class="bi bi-x"></i> Batal
                         </a>
                     </div>
@@ -100,7 +96,7 @@
             </div>
             <div class="card-body">
                 <p>Anda dapat mengunduh template Excel untuk memudahkan proses input data:</p>
-                <a href="{{ route('machines.template') }}" class="btn btn-primary">
+                <a href="{{ route('lines.template') }}" class="btn btn-primary">
                     <i class="bi bi-download"></i> Download Template Excel
                 </a>
             </div>
@@ -115,20 +111,20 @@
             <div class="card-body">
                 <ul class="list-unstyled">
                     <li class="mb-3">
-                        <strong>✓ Line harus ada</strong>
-                        <p class="small text-muted mb-0">Pastikan line sudah terdaftar</p>
-                    </li>
-                    <li class="mb-3">
-                        <strong>✓ Nama unik</strong>
-                        <p class="small text-muted mb-0">Setiap nama mesin harus berbeda</p>
+                        <strong>✓ Gunakan Excel atau CSV</strong>
+                        <p class="small text-muted mb-0">File format yang didukung</p>
                     </li>
                     <li class="mb-3">
                         <strong>✓ Header di baris pertama</strong>
                         <p class="small text-muted mb-0">Jangan lupa header columns</p>
                     </li>
+                    <li class="mb-3">
+                        <strong>✓ Nama unik</strong>
+                        <p class="small text-muted mb-0">Setiap nama line harus berbeda</p>
+                    </li>
                     <li>
                         <strong>✓ Data lengkap</strong>
-                        <p class="small text-muted mb-0">Name dan line_name wajib</p>
+                        <p class="small text-muted mb-0">Name wajib ada</p>
                     </li>
                 </ul>
             </div>

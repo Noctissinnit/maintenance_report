@@ -437,7 +437,7 @@
                                         <td>
                                             <strong>{{ $machine['machine_name'] }}</strong>
                                             <br>
-                                            <small class="text-muted">{{ $machine['line_name'] ?? 'N/A' }}</small>
+                                            <small class="text-muted">{{ $machine['line_name'] ?? 'Line Tidak Diketahui' }}</small>
                                         </td>
                                         <td class="text-center">
                                             <strong>{{ number_format($machine['mtbf_hours'], 2) }}</strong>
@@ -495,7 +495,7 @@
                                         <td>
                                             <strong>{{ $machine['machine_name'] }}</strong>
                                             <br>
-                                            <small class="text-muted">{{ $machine['line_name'] ?? 'N/A' }}</small>
+                                            <small class="text-muted">{{ $machine['line_name'] ?? 'Line Tidak Diketahui' }}</small>
                                         </td>
                                         <td class="text-center">
                                             <strong>{{ number_format($machine['mtbf_hours'], 2) }}</strong>

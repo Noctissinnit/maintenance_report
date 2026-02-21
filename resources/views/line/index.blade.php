@@ -7,10 +7,13 @@
     <div class="card-header d-flex justify-content-between align-items-center">
         <h4 class="mb-0">Data Line Produksi</h4>
         <div>
+            <a href="{{ route('lines.import-form') }}" class="btn btn-info btn-sm">
+                <i class="bi bi-upload"></i> Import Excel
+            </a>
             <a href="{{ route('lines.create') }}" class="btn btn-success btn-sm">
                 <i class="bi bi-plus-circle"></i> Tambah Line
             </a>
-            <a href="{{ route('templates.download-line') }}" class="btn btn-primary btn-sm" title="Download template untuk import data">
+            <a href="{{ route('lines.template') }}" class="btn btn-primary btn-sm" title="Download template untuk import data">
                 <i class="bi bi-file-earmark-spreadsheet"></i> Template
             </a>
         </div>

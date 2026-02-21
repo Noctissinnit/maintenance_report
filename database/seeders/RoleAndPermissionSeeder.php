@@ -90,6 +90,7 @@ class RoleAndPermissionSeeder extends Seeder
             'view_dashboard',
             'view_all_laporan',
             'view_department_dashboard',
+            'view_own_laporan',
         ]);
 
         // Final cache reset

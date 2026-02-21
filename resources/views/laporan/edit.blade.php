@@ -132,13 +132,6 @@
                         id="downtime_min" name="downtime_min" value="{{ old('downtime_min', $laporan->downtime_min) }}" min="0" readonly>
                     @error('downtime_min')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
-
-                <div class="col-md-6 mb-3">
-                    <label for="between_failure_min" class="form-label">Between Failure (Menit)</label>
-                    <input type="number" class="form-control @error('between_failure_min') is-invalid @enderror" 
-                        id="between_failure_min" name="between_failure_min" value="{{ old('between_failure_min', $laporan->between_failure_min) }}" min="0">
-                    @error('between_failure_min')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                </div>
             </div>
 
             <div class="mt-4">

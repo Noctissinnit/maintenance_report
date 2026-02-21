@@ -7,10 +7,13 @@
     <div class="card-header d-flex justify-content-between align-items-center">
         <h4 class="mb-0">Data Spare Part</h4>
         <div>
+            <a href="{{ route('spare-parts.import-form') }}" class="btn btn-info btn-sm">
+                <i class="bi bi-upload"></i> Import Excel
+            </a>
             <a href="{{ route('spare-parts.create') }}" class="btn btn-success btn-sm">
                 <i class="bi bi-plus-circle"></i> Tambah Spare Part
             </a>
-            <a href="{{ route('templates.download-spare-part') }}" class="btn btn-primary btn-sm" title="Download template untuk import data">
+            <a href="{{ route('spare-parts.template') }}" class="btn btn-primary btn-sm" title="Download template untuk import data">
                 <i class="bi bi-file-earmark-spreadsheet"></i> Template
             </a>
             <a href="{{ route('spare-parts.export') }}" class="btn btn-info btn-sm">

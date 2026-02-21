@@ -8,6 +8,9 @@
         <h2>Data Karyawan</h2>
     </div>
     <div class="col-md-6 text-end">
+        <a href="{{ route('employees.import-form') }}" class="btn btn-info">
+            <i class="bi bi-upload"></i> Import Excel
+        </a>
         <a href="{{ route('employees.create') }}" class="btn btn-success">
             <i class="bi bi-plus"></i> Tambah Karyawan
         </a>

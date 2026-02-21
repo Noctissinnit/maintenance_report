@@ -120,9 +120,8 @@ class DashboardController extends Controller
         $avgMTTR = $baseQuery()->where('downtime_min', '>', 0)
             ->avg('downtime_min') ?? 0;
         
-        // Average MTBF (Mean Time Between Failures)
-        $avgMTBF = $baseQuery()->where('between_failure_min', '>', 0)
-            ->avg('between_failure_min') ?? 0;
+        // Average MTBF will be calculated from Machine model below
+        $avgMTBF = 0;
         
         // Hitung Availability dan Downtime Percentage
         $maxDowntime = max(14400, $totalDowntime);
@@ -289,9 +288,8 @@ class DashboardController extends Controller
         $avgMTTR = $baseQuery()->where('downtime_min', '>', 0)
             ->avg('downtime_min') ?? 0;
         
-        // Average MTBF (Mean Time Between Failures)
-        $avgMTBF = $baseQuery()->where('between_failure_min', '>', 0)
-            ->avg('between_failure_min') ?? 0;
+        // Average MTBF will be calculated from Machine model
+        $avgMTBF = 0;
         
         // Hitung Availability dan Downtime Percentage
         $maxDowntime = max(14400, $totalDowntime);

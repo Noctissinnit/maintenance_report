@@ -7,7 +7,7 @@
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="h3 mb-0">MTBF Analysis: {{ $machine->nama_mesin }}</h1>
-                    <small class="text-muted">Machine ID: {{ $machine->id }} | Line: {{ $machine->line->nama_line ?? 'N/A' }}</small>
+                    <small class="text-muted">Machine ID: {{ $machine->id }} | Line: {{ $machine->line->name ?? 'N/A' }}</small>
                 </div>
                 <a href="{{ route('mtbf.index') }}" class="btn btn-secondary btn-sm">
                     <i class="bi bi-arrow-left"></i> Back to MTBF List
