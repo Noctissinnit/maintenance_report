@@ -4,11 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Machine;
 use App\Models\Line;
-use App\Imports\MachinesImport;
 use App\Http\Requests\ImportMachineRequest;
 use Illuminate\Http\Request;
 use Auth;
-use Maatwebsite\Excel\Facades\Excel;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -106,13 +105,35 @@ class MachineController extends Controller
             $skipCount = 0;
             $errorMessages = [];
 
-            $rows = Excel::toArray(new MachinesImport, $file);
+            // Load spreadsheet using PhpOffice
+            $spreadsheet = IOFactory::load($file->getPathname());
+            $worksheet = $spreadsheet->getActiveSheet();
+            $rows = [];
+            $headerRow = null;
             
-            if (empty($rows) || empty($rows[0])) {
+            // Extract data from spreadsheet
+            foreach ($worksheet->getRowIterator() as $rowIndex => $row) {
+                $rowData = [];
+                foreach ($row->getCellIterator() as $cell) {
+                    $rowData[] = $cell->getValue();
+                }
+                
+                if ($rowIndex === 1) {
+                    // First row is header
+                    $headerRow = array_map('strtolower', array_map('trim', $rowData));
+                } else {
+                    // Subsequent rows are data
+                    if (!empty(array_filter($rowData))) { // Skip empty rows
+                        $rows[] = array_combine($headerRow, $rowData);
+                    }
+                }
+            }
+            
+            if (empty($rows)) {
                 return redirect()->route('machines.index')->with('error', 'File Excel kosong atau format tidak sesuai');
             }
 
-            foreach ($rows[0] as $index => $row) {
+            foreach ($rows as $index => $row) {
                 try {
                     if (empty($row['name']) || empty($row['line_name'])) {
                         $skipCount++;

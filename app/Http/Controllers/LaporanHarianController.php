@@ -6,14 +6,12 @@ use App\Models\LaporanHarian;
 use App\Models\Machine;
 use App\Models\SparePart;
 use App\Models\Line;
-use App\Imports\LaporanHarianImport;
 use App\Http\Requests\ImportLaporanRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Models\Role;
-use Maatwebsite\Excel\Facades\Excel;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use Carbon\Carbon;
 
 class LaporanHarianController extends Controller
 {
@@ -262,13 +260,35 @@ class LaporanHarianController extends Controller
             $skipCount = 0;
             $errorMessages = [];
 
-            $rows = Excel::toArray(new LaporanHarianImport, $file);
+            // Load spreadsheet using PhpOffice
+            $spreadsheet = IOFactory::load($file->getPathname());
+            $worksheet = $spreadsheet->getActiveSheet();
+            $rows = [];
+            $headerRow = null;
             
-            if (empty($rows) || empty($rows[0])) {
+            // Extract data from spreadsheet
+            foreach ($worksheet->getRowIterator() as $rowIndex => $row) {
+                $rowData = [];
+                foreach ($row->getCellIterator() as $cell) {
+                    $rowData[] = $cell->getValue();
+                }
+                
+                if ($rowIndex === 1) {
+                    // First row is header
+                    $headerRow = array_map('strtolower', array_map('trim', $rowData));
+                } else {
+                    // Subsequent rows are data
+                    if (!empty(array_filter($rowData))) { // Skip empty rows
+                        $rows[] = array_combine($headerRow, $rowData);
+                    }
+                }
+            }
+            
+            if (empty($rows)) {
                 return redirect()->route('laporan.index')->with('error', 'File Excel kosong atau format tidak sesuai');
             }
 
-            foreach ($rows[0] as $index => $row) {
+            foreach ($rows as $index => $row) {
                 try {
                     if (empty($row['tanggal_laporan']) && empty($row['machine_name'])) {
                         $skipCount++;
@@ -312,7 +332,7 @@ class LaporanHarianController extends Controller
                     $tanggalLaporan = null;
                     if (!empty($row['tanggal_laporan'])) {
                         try {
-                            $tanggalLaporan = \Carbon\Carbon::createFromFormat('d/m/Y', $row['tanggal_laporan'])->toDateString();
+                            $tanggalLaporan = Carbon::createFromFormat('d/m/Y', $row['tanggal_laporan'])->toDateString();
                         } catch (\Exception $e) {
                             $skipCount++;
                             $errorMessages[] = "Baris " . ($index + 2) . ": Format tanggal tidak valid: {$row['tanggal_laporan']}";
@@ -328,7 +348,7 @@ class LaporanHarianController extends Controller
                     if ($jenisPekerjaan === 'corrective') {
                         if (!empty($row['start_time'])) {
                             try {
-                                $startTime = \Carbon\Carbon::createFromFormat('H:i', $row['start_time']);
+                                $startTime = Carbon::createFromFormat('H:i', $row['start_time']);
                             } catch (\Exception $e) {
                                 $skipCount++;
                                 $errorMessages[] = "Baris " . ($index + 2) . ": Format start_time tidak valid: {$row['start_time']}";
@@ -338,7 +358,7 @@ class LaporanHarianController extends Controller
 
                         if (!empty($row['end_time'])) {
                             try {
-                                $endTime = \Carbon\Carbon::createFromFormat('H:i', $row['end_time']);
+                                $endTime = Carbon::createFromFormat('H:i', $row['end_time']);
                             } catch (\Exception $e) {
                                 $skipCount++;
                                 $errorMessages[] = "Baris " . ($index + 2) . ": Format end_time tidak valid: {$row['end_time']}";
