@@ -6,13 +6,16 @@
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-gradient d-flex justify-content-between align-items-center border-0" style="background: linear-gradient(135deg, #2c5f2d 0%, #1e3f1f 100%);">
         <h4 class="mb-0 text-white">Daftar Laporan Anda</h4>
-        <div>
+        <div class="d-flex gap-2">
             <a href="{{ route('laporan.import-form') }}" class="btn btn-light btn-sm fw-semibold">
                 <i class="bi bi-upload"></i> Import Excel
             </a>
             <a href="{{ route('laporan.create') }}" class="btn btn-light btn-sm fw-semibold">
                 <i class="bi bi-plus-circle"></i> Input Laporan Baru
             </a>
+            <button type="button" class="btn btn-danger btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#clearAllModal" title="Hapus semua laporan">
+                <i class="bi bi-trash"></i> Clear All
+            </button>
         </div>
     </div>
     
@@ -216,6 +219,33 @@
                 Halaman {{ $laporan->currentPage() }} dari {{ $laporan->lastPage() }} | Total: {{ $laporan->total() }} laporan
             </div>
         @endif
+    </div>
+</div>
+
+<!-- Clear All Confirmation Modal -->
+<div class="modal fade" id="clearAllModal" tabindex="-1" aria-labelledby="clearAllModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="clearAllModalLabel"><i class="bi bi-exclamation-triangle"></i> Hapus Semua Laporan</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3"><strong>⚠️ Peringatan!</strong></p>
+                <p>Anda akan menghapus <strong>semua laporan</strong>. Aksi ini <strong>tidak dapat dibatalkan</strong>!</p>
+                <p class="text-muted small mb-0">{{ Auth::user()->hasRole('admin') ? 'Sebagai admin, semua laporan di sistem akan dihapus.' : 'Hanya laporan Anda yang akan dihapus.' }}</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <form action="{{ route('laporan.clear-all') }}" method="POST" style="display: inline;">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger fw-semibold">
+                        <i class="bi bi-trash"></i> Ya, Hapus Semua
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 @endsection

@@ -297,6 +297,30 @@ class LaporanHarianController extends Controller
         return redirect()->route('laporan.index')->with('success', 'Laporan berhasil dihapus!');
     }
 
+    /**
+     * Clear all laporan records
+     */
+    public function clearAll()
+    {
+        // Check permission
+        if (!Auth::user()->can('delete_laporan')) {
+            abort(403, 'Unauthorized');
+        }
+
+        // Only allow admins to clear all, others can only clear their own
+        if (Auth::user()->hasRole('admin')) {
+            // Admin: clear all laporan
+            $deletedCount = LaporanHarian::count();
+            LaporanHarian::truncate();
+        } else {
+            // Non-admin: clear only their laporan
+            $deletedCount = LaporanHarian::where('user_id', Auth::id())->count();
+            LaporanHarian::where('user_id', Auth::id())->delete();
+        }
+
+        return redirect()->route('laporan.index')->with('success', "Berhasil menghapus {$deletedCount} laporan!");
+    }
+
     public function importForm()
     {
         return view('laporan.import');

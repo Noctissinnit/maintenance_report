@@ -32,6 +32,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/laporan/import-form', [LaporanHarianController::class, 'importForm'])->name('laporan.import-form');
     Route::post('/laporan/import', [LaporanHarianController::class, 'import'])->name('laporan.import');
     Route::get('/laporan/template', [LaporanHarianController::class, 'template'])->name('laporan.template');
+    Route::delete('/laporan/clear-all', [LaporanHarianController::class, 'clearAll'])->name('laporan.clear-all');
     Route::get('/laporan', [LaporanHarianController::class, 'index'])->name('laporan.index');
     Route::get('/laporan/create', [LaporanHarianController::class, 'create'])->name('laporan.create');
     Route::post('/laporan', [LaporanHarianController::class, 'store'])->name('laporan.store');
