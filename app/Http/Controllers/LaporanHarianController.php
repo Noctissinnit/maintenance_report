@@ -11,6 +11,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Models\Role;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 use Carbon\Carbon;
 
 class LaporanHarianController extends Controller
@@ -18,12 +21,21 @@ class LaporanHarianController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         // Cek permission
         if (!Auth::user()->can('view_own_laporan')) {
             abort(403, 'Unauthorized');
         }
+
+        // Get search parameters
+        $search = $request->input('search', '');
+        $mesin_filter = $request->input('mesin', '');
+        $line_filter = $request->input('line', '');
+        $jenis_filter = $request->input('jenis_pekerjaan', '');
+        $tipe_filter = $request->input('tipe_laporan', '');
+        $start_date = $request->input('start_date', '');
+        $end_date = $request->input('end_date', '');
 
         // Base query
         $query = LaporanHarian::select(
@@ -49,10 +61,48 @@ class LaporanHarianController extends Controller
             $query->where('user_id', Auth::id());
         }
 
-        // Eksekusi query
-        $laporan = $query->paginate(10);
+        // Apply search filters
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('mesin_name', 'like', '%' . $search . '%')
+                  ->orWhere('line', 'like', '%' . $search . '%')
+                  ->orWhere('catatan', 'like', '%' . $search . '%')
+                  ->orWhere('jenis_pekerjaan', 'like', '%' . $search . '%');
+            });
+        }
 
-        return view('laporan.index', compact('laporan'));
+        // Filter by mesin
+        if (!empty($mesin_filter)) {
+            $query->where('mesin_name', 'like', '%' . $mesin_filter . '%');
+        }
+
+        // Filter by line
+        if (!empty($line_filter)) {
+            $query->where('line', 'like', '%' . $line_filter . '%');
+        }
+
+        // Filter by jenis pekerjaan
+        if (!empty($jenis_filter)) {
+            $query->where('jenis_pekerjaan', $jenis_filter);
+        }
+
+        // Filter by tipe laporan
+        if (!empty($tipe_filter)) {
+            $query->where('tipe_laporan', $tipe_filter);
+        }
+
+        // Filter by date range
+        if (!empty($start_date)) {
+            $query->where('tanggal_laporan', '>=', $start_date);
+        }
+        if (!empty($end_date)) {
+            $query->where('tanggal_laporan', '<=', $end_date);
+        }
+
+        // Eksekusi query - gunakan 15 items per page
+        $laporan = $query->paginate(15)->appends($request->query());
+
+        return view('laporan.index', compact('laporan', 'search', 'mesin_filter', 'line_filter', 'jenis_filter', 'tipe_filter', 'start_date', 'end_date'));
     }
 
 
@@ -259,6 +309,7 @@ class LaporanHarianController extends Controller
             $successCount = 0;
             $skipCount = 0;
             $errorMessages = [];
+            $infoMessages = [];
 
             // Load spreadsheet using PhpOffice
             $spreadsheet = IOFactory::load($file->getPathname());
@@ -300,44 +351,93 @@ class LaporanHarianController extends Controller
                     $line = null;
                     $sparePart = null;
 
+                    // Process line first (because machine needs line_id)
+                    if (!empty($row['line_name'])) {
+                        $line = Line::where('name', trim($row['line_name']))->first();
+                        if (!$line) {
+                            // Auto-create line if doesn't exist
+                            $line = Line::create([
+                                'name' => trim($row['line_name']),
+                                'code' => strtoupper(str_replace(' ', '_', trim($row['line_name']))),
+                                'status' => 'active',
+                            ]);
+                            $infoMessages[] = "Baris " . ($index + 2) . ": Line '{$row['line_name']}' baru dibuat otomatis";
+                        }
+                    }
+
                     if (!empty($row['machine_name'])) {
                         $machine = Machine::where('name', trim($row['machine_name']))->first();
                         if (!$machine) {
-                            $skipCount++;
-                            $errorMessages[] = "Baris " . ($index + 2) . ": Mesin '{$row['machine_name']}' tidak ditemukan";
-                            continue;
+                            // Auto-create machine if doesn't exist
+                            $machine = Machine::create([
+                                'name' => trim($row['machine_name']),
+                                'code' => strtoupper(str_replace(' ', '_', trim($row['machine_name']))),
+                                'line_id' => $line ? $line->id : null,
+                                'status' => 'active',
+                            ]);
+                            $infoMessages[] = "Baris " . ($index + 2) . ": Mesin '{$row['machine_name']}' baru dibuat otomatis";
                         }
-                        $line = $machine->line;
-                    }
-
-                    if (!empty($row['line_name']) && !$line) {
-                        $line = Line::where('name', trim($row['line_name']))->first();
-                        if (!$line) {
-                            $skipCount++;
-                            $errorMessages[] = "Baris " . ($index + 2) . ": Line '{$row['line_name']}' tidak ditemukan";
-                            continue;
+                        
+                        // Update line from machine if not already set
+                        if (!$line && $machine->line) {
+                            $line = $machine->line;
                         }
                     }
 
                     if (!empty($row['spare_part_name'])) {
                         $sparePart = SparePart::where('name', trim($row['spare_part_name']))->first();
                         if (!$sparePart) {
-                            $skipCount++;
-                            $errorMessages[] = "Baris " . ($index + 2) . ": Spare Part '{$row['spare_part_name']}' tidak ditemukan";
-                            continue;
+                            // Auto-create spare part if doesn't exist
+                            $sparePart = SparePart::create([
+                                'name' => trim($row['spare_part_name']),
+                                'code' => strtoupper(str_replace(' ', '_', trim($row['spare_part_name']))),
+                                'status' => 'active',
+                            ]);
+                            $infoMessages[] = "Baris " . ($index + 2) . ": Spare Part '{$row['spare_part_name']}' baru dibuat otomatis";
                         }
                     }
 
-                    // Parse tanggal
+                    // Parse tanggal - support multiple formats including Excel serial dates
                     $tanggalLaporan = null;
                     if (!empty($row['tanggal_laporan'])) {
                         try {
-                            $tanggalLaporan = Carbon::createFromFormat('d/m/Y', $row['tanggal_laporan'])->toDateString();
+                            $dateValue = trim($row['tanggal_laporan']);
+                            
+                            // Check if it's a numeric value (Excel serial date)
+                            if (is_numeric($dateValue) && (int)$dateValue > 0) {
+                                try {
+                                    // Convert Excel serial date to DateTime
+                                    $dateObj = Date::excelToDateTimeObject($dateValue);
+                                    $tanggalLaporan = $dateObj->format('Y-m-d');
+                                } catch (\Exception $ee) {
+                                    throw new \Exception("Tidak bisa mengkonversi Excel date: {$dateValue}");
+                                }
+                            } else {
+                                // Try multiple text date formats
+                                $formats = ['d/m/Y', 'd-m-Y', 'Y-m-d', 'Y/m/d', 'd.m.Y', 'j/n/Y', 'j-n-Y'];
+                                $tanggalLaporan = null;
+                                
+                                foreach ($formats as $format) {
+                                    try {
+                                        $tanggalLaporan = Carbon::createFromFormat($format, $dateValue)->toDateString();
+                                        break;
+                                    } catch (\Exception $fe) {
+                                        // Try next format
+                                    }
+                                }
+                                
+                                if (!$tanggalLaporan) {
+                                    throw new \Exception("Format tanggal tidak valid: {$dateValue}");
+                                }
+                            }
                         } catch (\Exception $e) {
                             $skipCount++;
-                            $errorMessages[] = "Baris " . ($index + 2) . ": Format tanggal tidak valid: {$row['tanggal_laporan']}";
+                            $errorMessages[] = "Baris " . ($index + 2) . ": " . $e->getMessage();
                             continue;
                         }
+                    } else {
+                        // If no date provided, use today's date
+                        $tanggalLaporan = Carbon::now()->toDateString();
                     }
 
                     // Parse start time dan end time
@@ -400,8 +500,23 @@ class LaporanHarianController extends Controller
                 $message .= " {$skipCount} baris dilewati.";
             }
 
+            // Show info messages
+            if (!empty($infoMessages)) {
+                $message .= "\n\nData baru dibuat otomatis (" . count($infoMessages) . "):";
+                foreach (array_slice($infoMessages, 0, 10) as $info) {
+                    $message .= "\n• " . $info;
+                }
+                if (count($infoMessages) > 10) {
+                    $message .= "\n... dan " . (count($infoMessages) - 10) . " data lainnya";
+                }
+            }
+
+            // Show error messages
             if (!empty($errorMessages)) {
-                $message .= "\n\n" . implode("\n", array_slice($errorMessages, 0, 5));
+                $message .= "\n\nError (" . count($errorMessages) . "):";
+                foreach (array_slice($errorMessages, 0, 5) as $err) {
+                    $message .= "\n• " . $err;
+                }
                 if (count($errorMessages) > 5) {
                     $message .= "\n... dan " . (count($errorMessages) - 5) . " error lainnya";
                 }

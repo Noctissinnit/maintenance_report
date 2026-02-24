@@ -15,6 +15,69 @@
             </a>
         </div>
     </div>
+    
+    <!-- Search & Filter Section -->
+    <div class="card-body pb-3">
+        <form method="GET" action="{{ route('laporan.index') }}" class="row g-3">
+            <div class="col-md-3">
+                <input type="text" name="search" class="form-control" placeholder="Cari mesin, line, atau catatan..." value="{{ $search }}" />
+            </div>
+            <div class="col-md-2">
+                <input type="text" name="mesin" class="form-control" placeholder="Filter mesin" value="{{ $mesin_filter }}" />
+            </div>
+            <div class="col-md-2">
+                <input type="text" name="line" class="form-control" placeholder="Filter line" value="{{ $line_filter }}" />
+            </div>
+            <div class="col-md-2">
+                <select name="jenis_pekerjaan" class="form-select">
+                    <option value="">-- Jenis Pekerjaan --</option>
+                    <option value="corrective" {{ $jenis_filter === 'corrective' ? 'selected' : '' }}>Corrective</option>
+                    <option value="preventive" {{ $jenis_filter === 'preventive' ? 'selected' : '' }}>Preventive</option>
+                    <option value="modifikasi" {{ $jenis_filter === 'modifikasi' ? 'selected' : '' }}>Modifikasi</option>
+                    <option value="utility" {{ $jenis_filter === 'utility' ? 'selected' : '' }}>Utility</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="tipe_laporan" class="form-select">
+                    <option value="">-- Tipe Laporan --</option>
+                    <option value="harian" {{ $tipe_filter === 'harian' ? 'selected' : '' }}>Harian</option>
+                    <option value="mingguan" {{ $tipe_filter === 'mingguan' ? 'selected' : '' }}>Mingguan</option>
+                    <option value="bulanan" {{ $tipe_filter === 'bulanan' ? 'selected' : '' }}>Bulanan</option>
+                </select>
+            </div>
+            <div class="col-md-12 border-top pt-3">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Dari Tanggal</label>
+                        <input type="date" name="start_date" class="form-control" value="{{ $start_date }}" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Sampai Tanggal</label>
+                        <input type="date" name="end_date" class="form-control" value="{{ $end_date }}" />
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search"></i> Cari
+                        </button>
+                        <a href="{{ route('laporan.index') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Result Info -->
+    @if(request()->hasAny(['search', 'mesin', 'line', 'jenis_pekerjaan', 'tipe_laporan', 'start_date', 'end_date']))
+        <div class="card-body pb-2 pt-0">
+            <small class="text-muted">
+                <i class="bi bi-info-circle"></i>
+                Menampilkan {{ $laporan->total() }} hasil dari pencarian
+            </small>
+        </div>
+    @endif
+    
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover mb-0">
@@ -108,14 +171,38 @@
                         <li class="page-item"><a class="page-link" href="{{ $laporan->previousPageUrl() }}">&lsaquo; Previous</a></li>
                     @endif
 
-                    {{-- Pagination Elements --}}
-                    @foreach ($laporan->getUrlRange(1, $laporan->lastPage()) as $page => $url)
+                    {{-- Pagination Elements with intelligent range --}}
+                    @php
+                        $currentPage = $laporan->currentPage();
+                        $lastPage = $laporan->lastPage();
+                        $start = max(1, $currentPage - 2);
+                        $end = min($lastPage, $start + 4);
+                        if ($end - $start < 4) {
+                            $start = max(1, $end - 4);
+                        }
+                    @endphp
+
+                    @if ($start > 1)
+                        <li class="page-item"><a class="page-link" href="{{ $laporan->url(1) }}">1</a></li>
+                        @if ($start > 2)
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        @endif
+                    @endif
+
+                    @foreach ($laporan->getUrlRange($start, $end) as $page => $url)
                         @if ($page == $laporan->currentPage())
                             <li class="page-item active"><span class="page-link">{{ $page }}</span></li>
                         @else
                             <li class="page-item"><a class="page-link" href="{{ $url }}">{{ $page }}</a></li>
                         @endif
                     @endforeach
+
+                    @if ($end < $lastPage)
+                        @if ($end < $lastPage - 1)
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        @endif
+                        <li class="page-item"><a class="page-link" href="{{ $laporan->url($lastPage) }}">{{ $lastPage }}</a></li>
+                    @endif
 
                     {{-- Next Page Link --}}
                     @if ($laporan->hasMorePages())
@@ -125,6 +212,9 @@
                     @endif
                 </ul>
             </nav>
+            <div class="text-center mt-2 text-muted small">
+                Halaman {{ $laporan->currentPage() }} dari {{ $laporan->lastPage() }} | Total: {{ $laporan->total() }} laporan
+            </div>
         @endif
     </div>
 </div>
