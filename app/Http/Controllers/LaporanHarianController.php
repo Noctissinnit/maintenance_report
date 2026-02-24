@@ -325,8 +325,50 @@ class LaporanHarianController extends Controller
                 }
                 
                 if ($rowIndex === 1) {
-                    // First row is header
-                    $headerRow = array_map('strtolower', array_map('trim', $rowData));
+                    // First row is header - process and normalize
+                    $headerRow = [];
+                    foreach ($rowData as $header) {
+                        // Normalize: lowercase, trim, remove descriptions in parentheses
+                        $cleanHeader = strtolower(trim($header));
+                        // Remove text in parentheses
+                        $cleanHeader = preg_replace('/\s*\([^)]*\)/', '', $cleanHeader);
+                        $cleanHeader = trim($cleanHeader);
+                        
+                        // Map alternative header names to standard ones
+                        $headerMap = [
+                            'tanggal' => 'tanggal_laporan',
+                            'mesin' => 'machine_name',
+                            'machine' => 'machine_name',
+                            'nama mesin' => 'machine_name',
+                            'line' => 'line_name',
+                            'nama line' => 'line_name',
+                            'jenis' => 'jenis_pekerjaan',
+                            'type pekerjaan' => 'jenis_pekerjaan',
+                            'scope pekerjaan' => 'scope',
+                            'catatan' => 'notes',
+                            'note' => 'notes',
+                            'sparepart' => 'spare_part_name',
+                            'spare part' => 'spare_part_name',
+                            'qty' => 'qty_spare_part',
+                            'quantity' => 'qty_spare_part',
+                            'komentar' => 'spare_part_notes',
+                            'start' => 'start_time',
+                            'waktu mulai' => 'start_time',
+                            'end' => 'end_time',
+                            'waktu selesai' => 'end_time',
+                            'downtime' => 'downtime_min',
+                            'status laporan' => 'status',
+                            'tipe' => 'report_type',
+                            'type' => 'report_type',
+                        ];
+                        
+                        // Check if header needs mapping
+                        if (isset($headerMap[$cleanHeader])) {
+                            $cleanHeader = $headerMap[$cleanHeader];
+                        }
+                        
+                        $headerRow[] = $cleanHeader;
+                    }
                 } else {
                     // Subsequent rows are data
                     if (!empty(array_filter($rowData))) { // Skip empty rows
@@ -443,29 +485,152 @@ class LaporanHarianController extends Controller
                     // Parse start time dan end time
                     $startTime = null;
                     $endTime = null;
-                    $jenisPekerjaan = strtolower($row['jenis_pekerjaan'] ?? 'preventive');
+                    
+                    // Parse and validate jenis_pekerjaan
+                    $jenisPekerjaanRaw = trim($row['jenis_pekerjaan'] ?? 'preventive');
+                    // Remove extra whitespace and convert to lowercase
+                    $jenisPekerjaan = strtolower(preg_replace('/\s+/', '', $jenisPekerjaanRaw));
+                    
+                    // Normalize jenis_pekerjaan - allow variations
+                    $jenisPekerjaanMap = [
+                        'corrective' => 'corrective',
+                        'corr' => 'corrective',
+                        'perbaikan' => 'corrective',
+                        'preventive' => 'preventive',
+                        'prev' => 'preventive',
+                        'pencegahan' => 'preventive',
+                        'pemeliharaan' => 'preventive',
+                        'modifikasi' => 'modifikasi',
+                        'mod' => 'modifikasi',
+                        'utility' => 'utility',
+                        'util' => 'utility',
+                    ];
+                    
+                    if (isset($jenisPekerjaanMap[$jenisPekerjaan])) {
+                        $jenisPekerjaan = $jenisPekerjaanMap[$jenisPekerjaan];
+                    } else {
+                        // Default to preventive if unknown
+                        $infoMessages[] = "Baris " . ($index + 2) . ": Jenis pekerjaan '{$jenisPekerjaanRaw}' tidak dikenal, menggunakan 'preventive'";
+                        $jenisPekerjaan = 'preventive';
+                    }
 
-                    if ($jenisPekerjaan === 'corrective') {
-                        if (!empty($row['start_time'])) {
-                            try {
-                                $startTime = Carbon::createFromFormat('H:i', $row['start_time']);
-                            } catch (\Exception $e) {
-                                $skipCount++;
-                                $errorMessages[] = "Baris " . ($index + 2) . ": Format start_time tidak valid: {$row['start_time']}";
-                                continue;
+                    // Parse start time dengan multiple format support
+                    if (!empty($row['start_time'])) {
+                        try {
+                            $timeValue = trim($row['start_time']);
+                            
+                            // Try to parse as Excel decimal time or numeric value first
+                            if (is_numeric($timeValue)) {
+                                $numValue = (float)$timeValue;
+                                // If it's a decimal between 0 and 1, it's Excel time format
+                                if ($numValue > 0 && $numValue < 1) {
+                                    $totalSeconds = $numValue * 24 * 60 * 60;
+                                    $hours = floor($totalSeconds / 3600);
+                                    $minutes = floor(($totalSeconds % 3600) / 60);
+                                    $seconds = floor($totalSeconds % 60);
+                                    $startTime = Carbon::createFromTime($hours, $minutes, $seconds);
+                                } else {
+                                    $startTime = null;
+                                }
+                            } else {
+                                // Try multiple text time formats
+                                $timeFormats = ['H:i', 'H:i:s', 'HH:mm', 'HH:mm:ss', 'h:i A', 'h:i:s A', 'H.i', 'H.i.s'];
+                                $startTime = null;
+                                
+                                foreach ($timeFormats as $format) {
+                                    try {
+                                        $startTime = Carbon::createFromFormat($format, $timeValue);
+                                        break;
+                                    } catch (\Exception $fe) {
+                                        // Try next format
+                                    }
+                                }
                             }
-                        }
-
-                        if (!empty($row['end_time'])) {
-                            try {
-                                $endTime = Carbon::createFromFormat('H:i', $row['end_time']);
-                            } catch (\Exception $e) {
-                                $skipCount++;
-                                $errorMessages[] = "Baris " . ($index + 2) . ": Format end_time tidak valid: {$row['end_time']}";
-                                continue;
+                            
+                            if (!$startTime) {
+                                $infoMessages[] = "Baris " . ($index + 2) . ": Format start_time tidak valid: {$timeValue}";
                             }
+                        } catch (\Exception $e) {
+                            $infoMessages[] = "Baris " . ($index + 2) . ": Error parsing start_time";
                         }
                     }
+
+                    // Parse end time dengan multiple format support
+                    if (!empty($row['end_time'])) {
+                        try {
+                            $timeValue = trim($row['end_time']);
+                            
+                            // Try to parse as Excel decimal time or numeric value first
+                            if (is_numeric($timeValue)) {
+                                $numValue = (float)$timeValue;
+                                // If it's a decimal between 0 and 1, it's Excel time format
+                                if ($numValue > 0 && $numValue < 1) {
+                                    $totalSeconds = $numValue * 24 * 60 * 60;
+                                    $hours = floor($totalSeconds / 3600);
+                                    $minutes = floor(($totalSeconds % 3600) / 60);
+                                    $seconds = floor($totalSeconds % 60);
+                                    $endTime = Carbon::createFromTime($hours, $minutes, $seconds);
+                                } else {
+                                    $endTime = null;
+                                }
+                            } else {
+                                // Try multiple text time formats
+                                $timeFormats = ['H:i', 'H:i:s', 'HH:mm', 'HH:mm:ss', 'h:i A', 'h:i:s A', 'H.i', 'H.i.s'];
+                                $endTime = null;
+                                
+                                foreach ($timeFormats as $format) {
+                                    try {
+                                        $endTime = Carbon::createFromFormat($format, $timeValue);
+                                        break;
+                                    } catch (\Exception $fe) {
+                                        // Try next format
+                                    }
+                                }
+                            }
+                            
+                            if (!$endTime) {
+                                $infoMessages[] = "Baris " . ($index + 2) . ": Format end_time tidak valid: {$timeValue}";
+                            }
+                        } catch (\Exception $e) {
+                            $infoMessages[] = "Baris " . ($index + 2) . ": Error parsing end_time";
+                        }
+                    }
+
+                    // Calculate downtime from start_time and end_time if both available
+                    $downtimeMin = !empty($row['downtime_min']) ? (int)$row['downtime_min'] : 0;
+                    if ($startTime && $endTime) {
+                        $downtimeMin = $startTime->diffInMinutes($endTime);
+                    }
+
+                    // Parse and normalize tipe_laporan
+                    $tipeLaporanRaw = trim($row['report_type'] ?? 'harian');
+                    $tipeLaporanNormalized = strtolower(preg_replace('/\s+/', '', $tipeLaporanRaw));
+                    $tipeLaporanMap = [
+                        'harian' => 'harian',
+                        'daily' => 'harian',
+                        'mingguan' => 'mingguan',
+                        'weekly' => 'mingguan',
+                        'bulanan' => 'bulanan',
+                        'monthly' => 'bulanan',
+                    ];
+                    $tipeLaporan = $tipeLaporanMap[$tipeLaporanNormalized] ?? 'harian';
+
+                    // Parse and normalize status
+                    $statusRaw = strtolower(preg_replace('/\s+/', '', trim($row['status'] ?? 'completed')));
+                    $status = ($statusRaw === 'pending') ? 'pending' : 'completed';
+
+                    // Parse and normalize scope 
+                    $scopeRaw = trim($row['scope'] ?? '');
+                    $scopeNormalized = strtolower(preg_replace('/\s+/', '', $scopeRaw));
+                    $scopeMap = [
+                        'electrik' => 'Electrik',
+                        'mekanik' => 'Mekanik',
+                        'mechanical' => 'Mekanik',
+                        'utility' => 'Utility',
+                        'building' => 'Building',
+                        'bangunan' => 'Building',
+                    ];
+                    $scope = $scopeMap[$scopeNormalized] ?? ($scopeRaw ? ucfirst($scopeRaw) : '');
 
                     LaporanHarian::create([
                         'user_id' => Auth::id(),
@@ -478,13 +643,13 @@ class LaporanHarianController extends Controller
                         'sparepart' => trim($row['spare_part_name'] ?? ''),
                         'qty_sparepart' => !empty($row['qty_spare_part']) ? (int)$row['qty_spare_part'] : 0,
                         'komentar_sparepart' => trim($row['spare_part_notes'] ?? ''),
-                        'status' => strtolower($row['status'] ?? 'completed') === 'pending' ? 'pending' : 'completed',
+                        'status' => $status,
                         'jenis_pekerjaan' => $jenisPekerjaan,
-                        'scope' => trim($row['scope'] ?? ''),
+                        'scope' => $scope,
                         'start_time' => $startTime,
                         'end_time' => $endTime,
-                        'downtime_min' => !empty($row['downtime_min']) ? (int)$row['downtime_min'] : 0,
-                        'tipe_laporan' => strtolower($row['report_type'] ?? 'daily'),
+                        'downtime_min' => $downtimeMin,
+                        'tipe_laporan' => $tipeLaporan,
                         'tanggal_laporan' => $tanggalLaporan,
                     ]);
 
