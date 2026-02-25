@@ -73,8 +73,22 @@
                         @forelse($mtbfData as $machine)
                             @php
                                 $mtbfHours = $machine['mtbf_hours'] ?? 0;
-                                // Determine reliability status
-                                if ($mtbfHours >= 168) { // >= 1 week
+                                $failureCount = $machine['failure_count'] ?? 0;
+                                
+                                // Determine reliability status - prioritize failure count
+                                if ($failureCount == 0) {
+                                    // No failures = Excellent reliability
+                                    $badgeClass = 'bg-success';
+                                    $statusText = 'Excellent';
+                                } elseif ($failureCount == 1) {
+                                    // 1 failure = Excellent reliability (very rare)
+                                    $badgeClass = 'bg-success';
+                                    $statusText = 'Excellent';
+                                } elseif ($failureCount <= 3) {
+                                    // 2-3 failures = Good reliability
+                                    $badgeClass = 'bg-info';
+                                    $statusText = 'Good';
+                                } elseif ($mtbfHours >= 168) { // >= 1 week
                                     $badgeClass = 'bg-success';
                                     $statusText = 'Excellent';
                                 } elseif ($mtbfHours >= 72) { // >= 3 days
