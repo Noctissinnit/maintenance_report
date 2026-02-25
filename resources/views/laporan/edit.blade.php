@@ -73,13 +73,6 @@
                 @error('komentar_sparepart')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
-            <div class="mb-3">
-                <label for="tanggal_laporan" class="form-label">Tanggal Laporan <span class="text-danger">*</span></label>
-                <input type="date" class="form-control @error('tanggal_laporan') is-invalid @enderror" 
-                    id="tanggal_laporan" name="tanggal_laporan" value="{{ old('tanggal_laporan', $laporan->tanggal_laporan->format('Y-m-d')) }}" required>
-                @error('tanggal_laporan')<div class="invalid-feedback">{{ $message }}</div>@enderror
-            </div>
-
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="jenis_pekerjaan" class="form-label">Jenis Pekerjaan <span class="text-danger">*</span></label>
@@ -95,6 +88,21 @@
                 </div>
 
                 <div class="col-md-6 mb-3">
+                    <label for="scope" class="form-label">Scope <span class="text-danger">*</span></label>
+                    <select class="form-select @error('scope') is-invalid @enderror" 
+                        id="scope" name="scope" required>
+                        <option value="">-- Pilih Scope --</option>
+                        <option value="Electrik" @selected(old('scope', $laporan->scope) === 'Electrik')>Electrik</option>
+                        <option value="Mekanik" @selected(old('scope', $laporan->scope) === 'Mekanik')>Mekanik</option>
+                        <option value="Utility" @selected(old('scope', $laporan->scope) === 'Utility')>Utility</option>
+                        <option value="Building" @selected(old('scope', $laporan->scope) === 'Building')>Building</option>
+                    </select>
+                    @error('scope')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
                     <label for="tipe_laporan" class="form-label">Tipe Laporan <span class="text-danger">*</span></label>
                     <select class="form-select @error('tipe_laporan') is-invalid @enderror" 
                         id="tipe_laporan" name="tipe_laporan" required>
@@ -104,6 +112,13 @@
                         <option value="bulanan" @selected(old('tipe_laporan', $laporan->tipe_laporan) === 'bulanan')>Bulanan</option>
                     </select>
                     @error('tipe_laporan')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="tanggal_laporan" class="form-label">Tanggal Laporan <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control @error('tanggal_laporan') is-invalid @enderror" 
+                        id="tanggal_laporan" name="tanggal_laporan" value="{{ old('tanggal_laporan', $laporan->tanggal_laporan->format('Y-m-d')) }}" required>
+                    @error('tanggal_laporan')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
             </div>
 
@@ -151,13 +166,15 @@ function toggleTimeFields() {
     const jenisPekerjaan = document.getElementById('jenis_pekerjaan').value;
     const timeFieldsContainer = document.getElementById('timeFieldsContainer');
     const startTimeInput = document.getElementById('start_time');
+    const endTimeInput = document.getElementById('end_time');
     
-    if (jenisPekerjaan === 'corrective') {
+    if (jenisPekerjaan === 'corrective' || jenisPekerjaan === 'preventive') {
         timeFieldsContainer.style.display = 'contents';
         startTimeInput.required = true;
     } else {
         timeFieldsContainer.style.display = 'none';
         startTimeInput.required = false;
+        endTimeInput.required = false;
         document.getElementById('downtime_min').value = 0;
     }
 }
