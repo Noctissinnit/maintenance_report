@@ -123,14 +123,14 @@ class DashboardController extends Controller
         // Average MTBF will be calculated from Machine model below
         $avgMTBF = 0;
         
-        // Hitung Availability dan Downtime Percentage
-        $maxDowntime = max(14400, $totalDowntime);
-        $downtimePercent = $maxDowntime > 0 ? ($totalDowntime / $maxDowntime) * 100 : 0;
-        $availability = 100 - $downtimePercent;
-        
         // Machine Performance Metrics
-        $totalPlannedTime = ($baseQuery()->count() * 8); // Assuming 8 jam per shift
+        $totalPlannedTime = max(1, ($totalLaporan * 480)); // 480 menit = 8 jam per shift
         $totalBreakdown = $baseQuery()->where('downtime_min', '>', 0)->count();
+        
+        // Hitung Availability dan Downtime Percentage dengan benar
+        $downtimePercent = $totalPlannedTime > 0 ? ($totalDowntime / $totalPlannedTime) * 100 : 0;
+        $downtimePercent = min(100, $downtimePercent); // Cap at 100%
+        $availability = 100 - $downtimePercent;
         
         // Maintenance Types (Convert menit to jam)
         // Corrective = downtime_min (perbaikan dari kerusakan)
@@ -291,14 +291,14 @@ class DashboardController extends Controller
         // Average MTBF will be calculated from Machine model
         $avgMTBF = 0;
         
-        // Hitung Availability dan Downtime Percentage
-        $maxDowntime = max(14400, $totalDowntime);
-        $downtimePercent = $maxDowntime > 0 ? ($totalDowntime / $maxDowntime) * 100 : 0;
-        $availability = 100 - $downtimePercent;
-        
         // Machine Performance Metrics
-        $totalPlannedTime = ($baseQuery()->count() * 8); // Assuming 8 jam per shift
+        $totalPlannedTime = max(1, ($totalLaporan * 480)); // 480 menit = 8 jam per shift
         $totalBreakdown = $baseQuery()->where('downtime_min', '>', 0)->count();
+        
+        // Hitung Availability dan Downtime Percentage dengan benar
+        $downtimePercent = $totalPlannedTime > 0 ? ($totalDowntime / $totalPlannedTime) * 100 : 0;
+        $downtimePercent = min(100, $downtimePercent); // Cap at 100%
+        $availability = 100 - $downtimePercent;
         
         // Maintenance Types (Convert menit to jam)
         // Corrective = downtime_min (perbaikan dari kerusakan)
