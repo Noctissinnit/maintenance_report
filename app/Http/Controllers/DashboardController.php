@@ -93,8 +93,8 @@ class DashboardController extends Controller
 
         // Base query dengan filter
         $baseQuery = function() use ($tahun, $bulan, $mesin, $line) {
-            $q = LaporanHarian::whereYear('created_at', $tahun)
-                ->whereMonth('created_at', $bulan);
+            $q = LaporanHarian::whereYear('tanggal_laporan', $tahun)
+                ->whereMonth('tanggal_laporan', $bulan);
 
             if ($mesin) {
                 $q->where('mesin_name', $mesin);
@@ -261,8 +261,8 @@ class DashboardController extends Controller
 
         // Base query dengan filter
         $baseQuery = function() use ($tahun, $bulan, $mesin, $line) {
-            $q = LaporanHarian::whereYear('created_at', $tahun)
-                ->whereMonth('created_at', $bulan);
+            $q = LaporanHarian::whereYear('tanggal_laporan', $tahun)
+                ->whereMonth('tanggal_laporan', $bulan);
 
             if ($mesin) {
                 $q->where('mesin_name', $mesin);
