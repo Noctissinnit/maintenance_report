@@ -80,6 +80,7 @@
                         <option value="">-- Pilih Jenis Pekerjaan --</option>
                         <option value="corrective" @selected(old('jenis_pekerjaan') === 'corrective')>Corrective</option>
                         <option value="preventive" @selected(old('jenis_pekerjaan') === 'preventive')>Preventive</option>
+                        <option value="change over product" @selected(old('jenis_pekerjaan') === 'change over product')>Change Over Product</option>
                         <option value="modifikasi" @selected(old('jenis_pekerjaan') === 'modifikasi')>Modifikasi</option>
                         <option value="utility" @selected(old('jenis_pekerjaan') === 'utility')>Utility</option>
                     </select>
@@ -168,7 +169,7 @@
         const startTimeInput = document.getElementById('start_time');
         const endTimeInput = document.getElementById('end_time');
         
-        if (jenisPekerjaan === 'corrective' || jenisPekerjaan === 'preventive') {
+        if (jenisPekerjaan === 'corrective' || jenisPekerjaan === 'preventive' || jenisPekerjaan === 'change over product') {
             timeFieldsContainer.style.display = 'contents';
             startTimeInput.required = true;
         } else {

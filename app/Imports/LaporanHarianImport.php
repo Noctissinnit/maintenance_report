@@ -89,16 +89,31 @@ class LaporanHarianImport implements ToModel, WithHeadingRow, WithValidation
         // Parse start time dan end time
         $startTime = null;
         $endTime = null;
+        $downtimeMin = 0;
         $jenisPekerjaan = strtolower($row['jenis_pekerjaan'] ?? 'preventive');
 
-        if ($jenisPekerjaan === 'corrective') {
+        // Parse start_time dan end_time untuk corrective, preventive, dan change over product
+        // Pass tanggalLaporan date so times get combined with correct date
+        if (in_array($jenisPekerjaan, ['corrective', 'preventive', 'change over product'])) {
             if (!empty($row['start_time'])) {
-                $startTime = $this->parseTimeValue($row['start_time']);
+                $startTime = $this->parseTimeValue($row['start_time'], $tanggalLaporan);
             }
 
             if (!empty($row['end_time'])) {
-                $endTime = $this->parseTimeValue($row['end_time']);
+                $endTime = $this->parseTimeValue($row['end_time'], $tanggalLaporan);
             }
+
+            // Calculate downtime in minutes from start_time and end_time
+            if ($startTime && $endTime) {
+                // Use absolute value since downtime is always positive
+                $downtimeMin = abs($endTime->diffInMinutes($startTime));
+            } elseif (!empty($row['downtime_min'])) {
+                // Fallback ke downtime_min dari Excel jika ada
+                $downtimeMin = abs((int)$row['downtime_min']);
+            }
+        } else {
+            // Untuk jenis pekerjaan lainnya, gunakan nilai dari Excel
+            $downtimeMin = !empty($row['downtime_min']) ? abs((int)$row['downtime_min']) : 0;
         }
 
         $laporanHarian = new LaporanHarian([
@@ -117,7 +132,7 @@ class LaporanHarianImport implements ToModel, WithHeadingRow, WithValidation
             'scope' => trim($row['scope'] ?? ''),
             'start_time' => $startTime,
             'end_time' => $endTime,
-            'downtime_min' => !empty($row['downtime_min']) ? (int)$row['downtime_min'] : 0,
+            'downtime_min' => $downtimeMin,
             'tipe_laporan' => strtolower($row['report_type'] ?? 'daily'),
             'tanggal_laporan' => $tanggalLaporan,
         ]);
@@ -133,7 +148,7 @@ class LaporanHarianImport implements ToModel, WithHeadingRow, WithValidation
             'line_name' => 'nullable|string|max:255',
             'spare_part_name' => 'nullable|string|max:255',
             'qty_spare_part' => 'nullable|numeric|min:0',
-            'jenis_pekerjaan' => 'nullable|in:preventive,corrective',
+            'jenis_pekerjaan' => 'nullable|in:preventive,corrective,change over product',
             'scope' => 'nullable|string',
             'notes' => 'nullable|string',
             'spare_part_notes' => 'nullable|string',
@@ -147,45 +162,99 @@ class LaporanHarianImport implements ToModel, WithHeadingRow, WithValidation
 
     /**
      * Parse time value dari berbagai format Excel
+     * @param $timeValue - nilai waktu dari Excel
+     * @param $dateString - tanggal untuk digabungkan dengan waktu (optional, default today)
      */
-    private function parseTimeValue($timeValue)
+    private function parseTimeValue($timeValue, $dateString = null)
     {
         if (empty($timeValue)) {
             return null;
         }
 
+        // Default ke tanggal hari ini jika tidak diberikan
+        if (!$dateString) {
+            $dateString = \Carbon\Carbon::now()->toDateString();
+        }
+
         try {
             $timeValue = trim($timeValue);
+            $parsedTime = null;
             
             // Jika numeric (Excel serial time)
             if (is_numeric($timeValue)) {
-                // Excel stores time as decimal fraction of a day
-                $hours = floor($timeValue * 24);
-                $minutes = floor(($timeValue * 24 - $hours) * 60);
-                $seconds = floor((($timeValue * 24 - $hours) * 60 - $minutes) * 60);
+                $numValue = floatval($timeValue);
                 
-                return \Carbon\Carbon::createFromFormat('H:i:s', sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds));
-            }
-            
-            // Ganti separator yang salah
-            // Tangani format seperti "14.50,00" atau "16.42,00" (European format)
-            $timeValue = str_replace(',', ':', $timeValue);
-            // Tangani format seperti "00.1.00" atau "10.00.0" - ganti titik dengan colon
-            $timeValue = str_replace('.', ':', $timeValue);
-            
-            // Coba berbagai format string
-            $formats = ['H:i:s', 'H:i', 'H'];
-            
-            foreach ($formats as $format) {
-                try {
-                    return \Carbon\Carbon::createFromFormat($format, $timeValue);
-                } catch (\Exception $e) {
-                    continue;
+                // Validasi: Excel time harus dalam range 0-1 (fraction of day)
+                // Jika > 1, mungkin itu salah format (e.g. total minutes atau seconds)
+                // Silahkan lewat dari parsing, return null
+                if ($numValue > 1) {
+                    Log::warning("Format waktu numeric terlalu besar: {$timeValue}");
+                    return null;
+                }
+                
+                // Excel stores time as decimal fraction of a day (0 = 00:00, 1 = 24:00)
+                $hours = floor($numValue * 24);
+                $minutes = floor(($numValue * 24 - $hours) * 60);
+                $seconds = floor((($numValue * 24 - $hours) * 60 - $minutes) * 60);
+                $timeFormatted = sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+                $parsedTime = \Carbon\Carbon::createFromFormat('H:i:s', $timeFormatted);
+            } else {
+                // Ganti separator yang salah
+                // Tangani format seperti "14.50,00" atau "16.42,00" (European format with comma)
+                $timeValue = str_replace(',', ':', $timeValue);
+                
+                // Tangani format seperti "00.1.00" atau "10.00.0" - hanya untuk format yang terlihat seperti jam:menit:detik
+                // Cek dulu jumlah bagian
+                $parts = explode('.', $timeValue);
+                if (count($parts) === 3) {
+                    // Kemungkinan format HH.MM.SS - ganti titik dengan colon
+                    $timeValue = str_replace('.', ':', $timeValue);
+                } elseif (count($parts) > 3) {
+                    // Format invalid dengan terlalu banyak titik, skip
+                    Log::warning("Format waktu invalid (terlalu banyak separator): {$timeValue}");
+                    return null;
+                }
+                
+                // Validate format - harus berupa HH:MM atau HH:MM:SS dengan angka valid
+                if (!preg_match('/^([0-9]{1,2}):([0-9]{1,2})(?::([0-9]{1,2}))?$/', $timeValue, $matches)) {
+                    Log::warning("Format waktu tidak valid: {$timeValue}");
+                    return null;
+                }
+                
+                // Validate range
+                $hours = intval($matches[1]);
+                $minutes = intval($matches[2]);
+                $seconds = isset($matches[3]) ? intval($matches[3]) : 0;
+                
+                if ($hours > 23 || $minutes > 59 || $seconds > 59) {
+                    Log::warning("Format waktu out of range: {$timeValue} (H:{$hours} M:{$minutes} S:{$seconds})");
+                    return null;
+                }
+                
+                // Coba berbagai format string dengan validated value
+                $formats = ['H:i:s', 'H:i'];
+                
+                foreach ($formats as $format) {
+                    try {
+                        $parsedTime = \Carbon\Carbon::createFromFormat($format, $timeValue);
+                        break;
+                    } catch (\Exception $e) {
+                        continue;
+                    }
+                }
+                
+                if (!$parsedTime) {
+                    Log::warning("Format waktu tidak dapat diparsing meskipun format valid: {$timeValue}");
+                    return null;
                 }
             }
             
-            // Jika semua format gagal, skip dengan returning null
-            Log::warning("Format waktu tidak dapat diparsing: {$timeValue}");
+            // Gabungkan dengan tanggal yang diberikan
+            if ($parsedTime) {
+                $dateObj = \Carbon\Carbon::createFromFormat('Y-m-d', $dateString);
+                return $dateObj->setTimeFromTimeString($parsedTime->format('H:i:s'));
+            }
+            
             return null;
             
         } catch (\Exception $e) {

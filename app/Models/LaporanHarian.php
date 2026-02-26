@@ -59,11 +59,12 @@ class LaporanHarian extends Model
     // Accessor untuk calculate downtime otomatis berdasarkan start_time dan end_time
     public function getDowntimeMinAttribute($value)
     {
-        // Jika jenis_pekerjaan adalah corrective dan ada start_time dan end_time
-        if ($this->jenis_pekerjaan === 'corrective' && $this->start_time && $this->end_time) {
+        // Jika jenis_pekerjaan adalah corrective, preventive, change over product dan ada start_time dan end_time
+        if (in_array($this->jenis_pekerjaan, ['corrective', 'preventive', 'change over product']) 
+            && $this->start_time && $this->end_time) {
             $start = \Carbon\Carbon::parse($this->start_time);
             $end = \Carbon\Carbon::parse($this->end_time);
-            return (int) $start->diffInMinutes($end);
+            return (int) abs($start->diffInMinutes($end));
         }
         return $value;
     }
@@ -71,14 +72,15 @@ class LaporanHarian extends Model
     // Mutator untuk set downtime when saving
     public function setDowntimeMinAttribute($value)
     {
-        // Jika jenis_pekerjaan adalah corrective, hitung dari start_time dan end_time
-        if ($this->jenis_pekerjaan === 'corrective' && isset($this->attributes['start_time']) && isset($this->attributes['end_time'])) {
+        // Jika jenis_pekerjaan adalah corrective, preventive, atau change over product
+        if (in_array($this->jenis_pekerjaan, ['corrective', 'preventive', 'change over product']) 
+            && isset($this->attributes['start_time']) && isset($this->attributes['end_time'])) {
             $start = \Carbon\Carbon::parse($this->attributes['start_time']);
             $end = \Carbon\Carbon::parse($this->attributes['end_time']);
-            $this->attributes['downtime_min'] = (int) $start->diffInMinutes($end);
+            $this->attributes['downtime_min'] = (int) abs($start->diffInMinutes($end));
         } else {
-            // Untuk non-corrective, set ke 0
-            $this->attributes['downtime_min'] = 0;
+            // Untuk non-time-based types, gunakan nilai yang diberikan atau 0
+            $this->attributes['downtime_min'] = is_numeric($value) ? abs($value) : 0;
         }
     }
 }

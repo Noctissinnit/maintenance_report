@@ -74,18 +74,27 @@
                             @php
                                 $mtbfHours = $machine['mtbf_hours'] ?? 0;
                                 $failureCount = $machine['failure_count'] ?? 0;
+                                $downtimeHours = $machine['total_downtime_hours'] ?? 0;
                                 
-                                // Determine reliability status - prioritize failure count
+                                // Determine reliability status based on failure count and downtime
                                 if ($failureCount == 0) {
                                     // No failures = Excellent reliability
                                     $badgeClass = 'bg-success';
                                     $statusText = 'Excellent';
-                                } elseif ($failureCount == 1) {
-                                    // 1 failure = Excellent reliability (very rare)
+                                } elseif ($failureCount == 1 && $downtimeHours < 1) {
+                                    // 1 failure with minimal downtime = Excellent
                                     $badgeClass = 'bg-success';
                                     $statusText = 'Excellent';
-                                } elseif ($failureCount <= 3) {
-                                    // 2-3 failures = Good reliability
+                                } elseif ($failureCount <= 2 && $downtimeHours < 4) {
+                                    // 1-2 failures with < 4 hrs downtime = Good
+                                    $badgeClass = 'bg-info';
+                                    $statusText = 'Good';
+                                } elseif ($failureCount <= 5 && $downtimeHours < 12) {
+                                    // 3-5 failures with < 12 hrs downtime = Fair
+                                    $badgeClass = 'bg-warning';
+                                    $statusText = 'Fair';
+                                } elseif ($failureCount <= 3 && $mtbfHours >= 72) {
+                                    // Alternative: Good MTBF (>= 3 days) = Good
                                     $badgeClass = 'bg-info';
                                     $statusText = 'Good';
                                 } elseif ($mtbfHours >= 168) { // >= 1 week
@@ -94,10 +103,8 @@
                                 } elseif ($mtbfHours >= 72) { // >= 3 days
                                     $badgeClass = 'bg-info';
                                     $statusText = 'Good';
-                                } elseif ($mtbfHours >= 24) { // >= 1 day
-                                    $badgeClass = 'bg-warning';
-                                    $statusText = 'Fair';
                                 } else {
+                                    // Multiple failures or high downtime = Poor
                                     $badgeClass = 'bg-danger';
                                     $statusText = 'Poor';
                                 }
@@ -155,12 +162,12 @@
     <!-- Legend -->
     <div class="mt-4">
         <div class="alert alert-info alert-sm">
-            <h6 class="alert-heading mb-2"><i class="bi bi-info-circle"></i> Reliability Status Explanation</h6>
+            <h6 class="alert-heading mb-2"><i class="bi bi-info-circle"></i> Reliability Status Explanation (Based on Downtime Failures)</h6>
             <ul class="mb-0 small">
-                <li><span class="badge bg-success">Excellent</span> - MTBF ≥ 168 hours (1 week) - Highly reliable machine</li>
-                <li><span class="badge bg-info">Good</span> - MTBF ≥ 72 hours (3 days) - Reliable machine</li>
-                <li><span class="badge bg-warning">Fair</span> - MTBF ≥ 24 hours (1 day) - Machine requires attention</li>
-                <li><span class="badge bg-danger">Poor</span> - MTBF < 24 hours - Machine needs frequent maintenance</li>
+                <li><span class="badge bg-success">Excellent</span> - No failures OR 1 failure with <1 hr downtime - Highly reliable</li>
+                <li><span class="badge bg-info">Good</span> - 1-2 failures with <4 hrs downtime OR MTBF ≥ 72 hours - Reliable</li>
+                <li><span class="badge bg-warning">Fair</span> - 3-5 failures with <12 hrs downtime - Needs monitoring</li>
+                <li><span class="badge bg-danger">Poor</span> - Multiple failures with high downtime OR MTBF < 72 hours - Needs maintenance</li>
             </ul>
         </div>
     </div>

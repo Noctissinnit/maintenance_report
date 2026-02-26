@@ -248,7 +248,7 @@
             <div class="card-body text-center">
                 <div class="performance-icon"><i class="bi bi-calendar-check"></i></div>
                 <div class="performance-label">Planned Time</div>
-                <div class="performance-value">{{ number_format($totalPlannedTime ?? 0) }}</div>
+                <div class="performance-value">{{ number_format(($totalPlannedTime ?? 0) / 60, 2) }}</div>
                 <div class="performance-unit">jam</div>
             </div>
         </div>
@@ -258,7 +258,7 @@
             <div class="card-body text-center">
                 <div class="performance-icon"><i class="bi bi-exclamation-circle"></i></div>
                 <div class="performance-label">Down Time</div>
-                <div class="performance-value">{{ number_format(($totalDowntime ?? 0) / 60, 2) }}</div>
+                <div class="performance-value">{{ number_format((min($totalDowntime ?? 0, $totalPlannedTime ?? 0)) / 60, 2) }}</div>
                 <div class="performance-unit">jam</div>
             </div>
         </div>
@@ -268,7 +268,7 @@
             <div class="card-body text-center">
                 <div class="performance-icon"><i class="bi bi-play-circle"></i></div>
                 <div class="performance-label">Operation Time</div>
-                <div class="performance-value">{{ number_format(((($totalPlannedTime ?? 0) * 60) - ($totalDowntime ?? 0)) / 60, 2) }}</div>
+                <div class="performance-value">{{ number_format((($totalPlannedTime ?? 0) - (min($totalDowntime ?? 0, $totalPlannedTime ?? 0))) / 60, 2) }}</div>
                 <div class="performance-unit">jam</div>
             </div>
         </div>
@@ -303,16 +303,6 @@
                 <div class="performance-icon"><i class="bi bi-shield-check"></i></div>
                 <div class="performance-label">Preventive Maintenance</div>
                 <div class="performance-value">{{ number_format($totalPreventiveMaint ?? 0, 2) }}</div>
-                <div class="performance-unit">jam</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card performance-card">
-            <div class="card-body text-center">
-                <div class="performance-icon"><i class="bi bi-lightning"></i></div>
-                <div class="performance-label">Predictive</div>
-                <div class="performance-value">{{ number_format($totalPredictive ?? 0, 2) }}</div>
                 <div class="performance-unit">jam</div>
             </div>
         </div>
@@ -422,10 +412,18 @@
                             <tbody>
                                 @foreach($topReliableMachines as $machine)
                                     @php
-                                        if ($machine['mtbf_hours'] >= 168) {
+                                        $failureCount = $machine['failure_count'] ?? 0;
+                                        $mtbfHours = $machine['mtbf_hours'] ?? 0;
+                                        $downtimeHours = $machine['total_downtime_hours'] ?? 0;
+                                        
+                                        // Determine reliability status based on failure count and downtime
+                                        if ($failureCount == 0) {
                                             $badgeClass = 'bg-success';
                                             $status = 'Excellent';
-                                        } elseif ($machine['mtbf_hours'] >= 72) {
+                                        } elseif ($failureCount == 1 && $downtimeHours < 1) {
+                                            $badgeClass = 'bg-success';
+                                            $status = 'Excellent';
+                                        } elseif ($failureCount <= 2 && $downtimeHours < 4) {
                                             $badgeClass = 'bg-info';
                                             $status = 'Good';
                                         } else {
@@ -480,15 +478,20 @@
                             <tbody>
                                 @foreach($worstMachines as $machine)
                                     @php
-                                        if ($machine['mtbf_hours'] < 24) {
-                                            $badgeClass = 'bg-danger';
-                                            $status = 'Poor';
-                                        } elseif ($machine['mtbf_hours'] < 72) {
+                                        $failureCount = $machine['failure_count'] ?? 0;
+                                        $mtbfHours = $machine['mtbf_hours'] ?? 0;
+                                        $downtimeHours = $machine['total_downtime_hours'] ?? 0;
+                                        
+                                        // Determine reliability status based on failure count and downtime
+                                        if ($failureCount <= 2 && $downtimeHours < 4) {
+                                            $badgeClass = 'bg-info';
+                                            $status = 'Good';
+                                        } elseif ($failureCount <= 5 && $downtimeHours < 12) {
                                             $badgeClass = 'bg-warning';
                                             $status = 'Fair';
                                         } else {
-                                            $badgeClass = 'bg-info';
-                                            $status = 'Good';
+                                            $badgeClass = 'bg-danger';
+                                            $status = 'Poor';
                                         }
                                     @endphp
                                     <tr>

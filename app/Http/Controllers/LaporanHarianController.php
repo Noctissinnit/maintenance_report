@@ -138,21 +138,32 @@ class LaporanHarianController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        $validated = $request->validate([
+        // First validate jenis_pekerjaan first
+        $jenisPekerjaan = $request->input('jenis_pekerjaan');
+        $rules = [
             'machine_id' => 'integer|exists:machines,id',
             'line_id' => 'required|integer|exists:lines,id',
             'catatan' => 'nullable|string',
             'spare_part_id' => 'nullable|integer|exists:spare_parts,id',
             'qty_sparepart' => 'integer|min:0',
             'komentar_sparepart' => 'nullable|string',
-            'jenis_pekerjaan' => 'required|in:corrective,preventive,modifikasi,utility',
+            'jenis_pekerjaan' => 'required|in:corrective,preventive,change over product,modifikasi,utility',
             'scope' => 'required|in:Electrik,Mekanik,Utility,Building',
-            'start_time' => 'nullable|date_format:Y-m-d\TH:i',
-            'end_time' => 'nullable|date_format:Y-m-d\TH:i|after:start_time',
             'downtime_min' => 'integer|min:0',
             'tipe_laporan' => 'in:harian,mingguan,bulanan',
             'tanggal_laporan' => 'required|date',
-        ]);
+        ];
+
+        // Add required validation for start_time and end_time untuk corrective, preventive, dan change over product
+        if (in_array($jenisPekerjaan, ['corrective', 'preventive', 'change over product'])) {
+            $rules['start_time'] = 'required|date_format:Y-m-d\TH:i';
+            $rules['end_time'] = 'required|date_format:Y-m-d\TH:i|after:start_time';
+        } else {
+            $rules['start_time'] = 'nullable|date_format:Y-m-d\TH:i';
+            $rules['end_time'] = 'nullable|date_format:Y-m-d\TH:i|after:start_time';
+        }
+
+        $validated = $request->validate($rules);
 
         $validated['user_id'] = Auth::id();
         
@@ -168,8 +179,8 @@ class LaporanHarianController extends Controller
             $validated['line'] = $line->name;
         }
 
-        // Calculate downtime for corrective and preventive types
-        if (($validated['jenis_pekerjaan'] === 'corrective' || $validated['jenis_pekerjaan'] === 'preventive') && isset($validated['start_time']) && isset($validated['end_time'])) {
+        // Calculate downtime for corrective, preventive and change over product types
+        if (($validated['jenis_pekerjaan'] === 'corrective' || $validated['jenis_pekerjaan'] === 'preventive' || $validated['jenis_pekerjaan'] === 'change over product') && isset($validated['start_time']) && isset($validated['end_time'])) {
             $start = \Carbon\Carbon::createFromFormat('Y-m-d\TH:i', $validated['start_time']);
             $end = \Carbon\Carbon::createFromFormat('Y-m-d\TH:i', $validated['end_time']);
             $validated['downtime_min'] = (int) $start->diffInMinutes($end);
@@ -234,21 +245,32 @@ class LaporanHarianController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        $validated = $request->validate([
+        // First validate jenis_pekerjaan first
+        $jenisPekerjaan = $request->input('jenis_pekerjaan');
+        $rules = [
             'machine_id' => 'integer|exists:machines,id',
             'line_id' => 'required|integer|exists:lines,id',
             'catatan' => 'nullable|string',
             'spare_part_id' => 'nullable|integer|exists:spare_parts,id',
             'qty_sparepart' => 'integer|min:0',
             'komentar_sparepart' => 'nullable|string',
-            'jenis_pekerjaan' => 'required|in:corrective,preventive,modifikasi,utility',
+            'jenis_pekerjaan' => 'required|in:corrective,preventive,change over product,modifikasi,utility',
             'scope' => 'required|in:Electrik,Mekanik,Utility,Building',
-            'start_time' => 'nullable|date_format:Y-m-d\TH:i',
-            'end_time' => 'nullable|date_format:Y-m-d\TH:i|after:start_time',
             'downtime_min' => 'integer|min:0',
             'tipe_laporan' => 'in:harian,mingguan,bulanan',
             'tanggal_laporan' => 'required|date',
-        ]);
+        ];
+
+        // Add required validation for start_time and end_time untuk corrective, preventive, dan change over product
+        if (in_array($jenisPekerjaan, ['corrective', 'preventive', 'change over product'])) {
+            $rules['start_time'] = 'required|date_format:Y-m-d\TH:i';
+            $rules['end_time'] = 'required|date_format:Y-m-d\TH:i|after:start_time';
+        } else {
+            $rules['start_time'] = 'nullable|date_format:Y-m-d\TH:i';
+            $rules['end_time'] = 'nullable|date_format:Y-m-d\TH:i|after:start_time';
+        }
+
+        $validated = $request->validate($rules);
 
         // Get machine name from selected machine
         if ($validated['machine_id']) {
@@ -262,8 +284,8 @@ class LaporanHarianController extends Controller
             $validated['line'] = $line->name;
         }
 
-        // Calculate downtime for corrective and preventive types
-        if (($validated['jenis_pekerjaan'] === 'corrective' || $validated['jenis_pekerjaan'] === 'preventive') && isset($validated['start_time']) && isset($validated['end_time'])) {
+        // Calculate downtime for corrective, preventive and change over product types
+        if (($validated['jenis_pekerjaan'] === 'corrective' || $validated['jenis_pekerjaan'] === 'preventive' || $validated['jenis_pekerjaan'] === 'change over product') && isset($validated['start_time']) && isset($validated['end_time'])) {
             $start = \Carbon\Carbon::createFromFormat('Y-m-d\TH:i', $validated['start_time']);
             $end = \Carbon\Carbon::createFromFormat('Y-m-d\TH:i', $validated['end_time']);
             $validated['downtime_min'] = (int) $start->diffInMinutes($end);

@@ -113,10 +113,11 @@ class DashboardController extends Controller
         // Total Laporan
         $totalLaporan = $baseQuery()->count();
         
-        // Total Downtime (menit)
-        $totalDowntime = $baseQuery()->sum('downtime_min') ?? 0;
+        // Total Downtime (menit) - hanya dari laporan dengan downtime (failure)
+        $totalDowntimeFailed = $baseQuery()->where('downtime_min', '>', 0)->sum('downtime_min') ?? 0;
+        $totalDowntime = $totalDowntimeFailed;
         
-        // Average MTTR (Mean Time To Repair)
+        // Average MTTR (Mean Time To Repair) - rata-rata dari laporan yang punya downtime
         $avgMTTR = $baseQuery()->where('downtime_min', '>', 0)
             ->avg('downtime_min') ?? 0;
         
@@ -124,26 +125,41 @@ class DashboardController extends Controller
         $avgMTBF = 0;
         
         // Machine Performance Metrics
-        $totalPlannedTime = max(1, ($totalLaporan * 480)); // 480 menit = 8 jam per shift
+        // Planned time = jumlah hari dalam bulan × 8 jam × 60 menit
+        $daysInMonth = \Carbon\Carbon::create($tahun, $bulan)->daysInMonth;
+        $totalPlannedTime = $daysInMonth * 8 * 60; // menit
+        
+        // Total Breakdown = jumlah laporan dengan downtime
         $totalBreakdown = $baseQuery()->where('downtime_min', '>', 0)->count();
         
+        // Hitung Downtime dengan capping per hari (max 8 jam per hari = 480 menit)
+        // Ini mencegah multiple machines pada hari yang sama menyebabkan availability negatif
+        $dailyDowntimes = $baseQuery()
+            ->where('downtime_min', '>', 0)
+            ->selectRaw('DATE(tanggal_laporan) as date, SUM(downtime_min) as total_downtime')
+            ->groupBy(DB::raw('DATE(tanggal_laporan)'))
+            ->get();
+        
+        $cappedTotalDowntime = 0;
+        foreach ($dailyDowntimes as $day) {
+            // Cap each day's downtime at maximum 480 minutes (8 hours)
+            $cappedTotalDowntime += min($day->total_downtime, 480);
+        }
+        
         // Hitung Availability dan Downtime Percentage dengan benar
-        $downtimePercent = $totalPlannedTime > 0 ? ($totalDowntime / $totalPlannedTime) * 100 : 0;
+        $downtimePercent = $totalPlannedTime > 0 ? ($cappedTotalDowntime / $totalPlannedTime) * 100 : 0;
         $downtimePercent = min(100, $downtimePercent); // Cap at 100%
         $availability = 100 - $downtimePercent;
         
         // Maintenance Types (Convert menit to jam)
-        // Corrective = downtime_min (perbaikan dari kerusakan)
-        $totalCorrectiveMaint = ($baseQuery()->sum('downtime_min') ?? 0) / 60;
+        // Corrective = downtime_min dari laporan jenis_pekerjaan = 'corrective'
+        $totalCorrectiveMaint = ($baseQuery()->where('jenis_pekerjaan', 'corrective')->sum('downtime_min') ?? 0) / 60;
         
-        // Preventive dapat diestimasi dari laporan maintenance yang direncanakan
-        $totalPreventiveMaint = 0; // Default 0 jika tidak ada data
+        // Preventive = downtime_min dari laporan jenis_pekerjaan = 'preventive'
+        $totalPreventiveMaint = ($baseQuery()->where('jenis_pekerjaan', 'preventive')->sum('downtime_min') ?? 0) / 60;
         
-        // Predictive dapat diestimasi dari data tertentu
-        $totalPredictive = 0; // Default 0 jika tidak ada data
-        
-        // Change Over = waktu persiapan produk baru (bisa dihitung dari selisih waktu)
-        $totalChangeOver = 0; // Default 0 jika tidak ada data
+        // Change Over Product = downtime_min dari laporan jenis_pekerjaan = 'change over product'
+        $totalChangeOver = ($baseQuery()->where('jenis_pekerjaan', 'change over product')->sum('downtime_min') ?? 0) / 60;
         
         // Top 10 Mesin dengan downtime terbanyak
         $topDowntimeMesin = $baseQuery()->select('mesin_name', DB::raw('SUM(downtime_min) as total_downtime'))
@@ -231,7 +247,6 @@ class DashboardController extends Controller
             'totalBreakdown',
             'totalCorrectiveMaint',
             'totalPreventiveMaint',
-            'totalPredictive',
             'totalChangeOver',
             'bulan',
             'tahun',
@@ -281,10 +296,11 @@ class DashboardController extends Controller
         // Total Laporan
         $totalLaporan = $baseQuery()->count();
         
-        // Total Downtime (menit)
-        $totalDowntime = $baseQuery()->sum('downtime_min') ?? 0;
+        // Total Downtime (menit) - hanya dari laporan dengan downtime (failure)
+        $totalDowntimeFailed = $baseQuery()->where('downtime_min', '>', 0)->sum('downtime_min') ?? 0;
+        $totalDowntime = $totalDowntimeFailed;
         
-        // Average MTTR (Mean Time To Repair)
+        // Average MTTR (Mean Time To Repair) - rata-rata dari laporan yang punya downtime
         $avgMTTR = $baseQuery()->where('downtime_min', '>', 0)
             ->avg('downtime_min') ?? 0;
         
@@ -292,26 +308,41 @@ class DashboardController extends Controller
         $avgMTBF = 0;
         
         // Machine Performance Metrics
-        $totalPlannedTime = max(1, ($totalLaporan * 480)); // 480 menit = 8 jam per shift
+        // Planned time = jumlah hari dalam bulan × 8 jam × 60 menit
+        $daysInMonth = \Carbon\Carbon::create($tahun, $bulan)->daysInMonth;
+        $totalPlannedTime = $daysInMonth * 8 * 60; // menit
+        
+        // Total Breakdown = jumlah laporan dengan downtime
         $totalBreakdown = $baseQuery()->where('downtime_min', '>', 0)->count();
         
+        // Hitung Downtime dengan capping per hari (max 8 jam per hari = 480 menit)
+        // Ini mencegah multiple machines pada hari yang sama menyebabkan availability negatif
+        $dailyDowntimes = $baseQuery()
+            ->where('downtime_min', '>', 0)
+            ->selectRaw('DATE(tanggal_laporan) as date, SUM(downtime_min) as total_downtime')
+            ->groupBy(DB::raw('DATE(tanggal_laporan)'))
+            ->get();
+        
+        $cappedTotalDowntime = 0;
+        foreach ($dailyDowntimes as $day) {
+            // Cap each day's downtime at maximum 480 minutes (8 hours)
+            $cappedTotalDowntime += min($day->total_downtime, 480);
+        }
+        
         // Hitung Availability dan Downtime Percentage dengan benar
-        $downtimePercent = $totalPlannedTime > 0 ? ($totalDowntime / $totalPlannedTime) * 100 : 0;
+        $downtimePercent = $totalPlannedTime > 0 ? ($cappedTotalDowntime / $totalPlannedTime) * 100 : 0;
         $downtimePercent = min(100, $downtimePercent); // Cap at 100%
         $availability = 100 - $downtimePercent;
         
         // Maintenance Types (Convert menit to jam)
-        // Corrective = downtime_min (perbaikan dari kerusakan)
-        $totalCorrectiveMaint = ($baseQuery()->sum('downtime_min') ?? 0) / 60;
+        // Corrective = downtime_min dari laporan jenis_pekerjaan = 'corrective'
+        $totalCorrectiveMaint = ($baseQuery()->where('jenis_pekerjaan', 'corrective')->sum('downtime_min') ?? 0) / 60;
         
-        // Preventive dapat diestimasi dari laporan maintenance yang direncanakan
-        $totalPreventiveMaint = 0; // Default 0 jika tidak ada data
+        // Preventive = downtime_min dari laporan jenis_pekerjaan = 'preventive'
+        $totalPreventiveMaint = ($baseQuery()->where('jenis_pekerjaan', 'preventive')->sum('downtime_min') ?? 0) / 60;
         
-        // Predictive dapat diestimasi dari data tertentu
-        $totalPredictive = 0; // Default 0 jika tidak ada data
-        
-        // Change Over = waktu persiapan produk baru (bisa dihitung dari selisih waktu)
-        $totalChangeOver = 0; // Default 0 jika tidak ada data
+        // Change Over Product = downtime_min dari laporan jenis_pekerjaan = 'change over product'
+        $totalChangeOver = ($baseQuery()->where('jenis_pekerjaan', 'change over product')->sum('downtime_min') ?? 0) / 60;
         
         // Top 10 Mesin dengan downtime terbanyak
         $topDowntimeMesin = $baseQuery()->select('mesin_name', DB::raw('SUM(downtime_min) as total_downtime'))
@@ -372,7 +403,6 @@ class DashboardController extends Controller
             'totalBreakdown',
             'totalCorrectiveMaint',
             'totalPreventiveMaint',
-            'totalPredictive',
             'totalChangeOver',
             'bulan',
             'tahun',
