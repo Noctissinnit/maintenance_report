@@ -12,8 +12,8 @@ class MTBFController extends Controller
      */
     public function index()
     {
-        // Check permission
-        if (!auth()->user()->can('view_own_laporan')) {
+        // Check permission - allow users with view_own_laporan permission or department_head role
+        if (!auth()->user()->can('view_own_laporan') && !auth()->user()->hasRole('department_head')) {
             abort(403, 'Unauthorized');
         }
 
@@ -76,8 +76,8 @@ class MTBFController extends Controller
      */
     public function show($machineId)
     {
-        // Check permission
-        if (!auth()->user()->can('view_own_laporan')) {
+        // Check permission - allow users with view_own_laporan permission or department_head role
+        if (!auth()->user()->can('view_own_laporan') && !auth()->user()->hasRole('department_head')) {
             abort(403, 'Unauthorized');
         }
 

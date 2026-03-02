@@ -706,8 +706,8 @@
                 </a>
             @endif
 
-            {{-- MTBF Analysis untuk semua role --}}
-            @if(Auth::user()->can('view_own_laporan'))
+            {{-- MTBF Analysis untuk operator, supervisor, dan department_head --}}
+            @if(Auth::user()->can('view_own_laporan') || Auth::user()->hasRole('department_head'))
                 <div class="sidebar-nav-title">Analytics</div>
                 <a href="{{ route('mtbf.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'mtbf.index' || Route::current()->getName() === 'mtbf.show') active @endif">
                     <i class="bi bi-speedometer2"></i> MTBF Analysis
