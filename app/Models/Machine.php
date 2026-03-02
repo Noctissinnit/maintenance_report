@@ -26,35 +26,58 @@ class Machine extends Model
 
     /**
      * Calculate MTBF (Mean Time Between Failures) for this machine
-     * MTBF = Total Waktu Operasi (Downtime) / Jumlah Kegagalan (Corrective Failures)
+     * MTBF = Running Time / Jumlah Kegagalan (Corrective Failures)
+     * Running Time = Planned Time - Downtime
+     * Planned Time = Hari dalam periode × 24 jam × 60 menit
      * 
+     * @param int $tahun - Year (optional, default current year)
+     * @param int $bulan - Month (optional, default current month)
      * @return array
      */
-    public function calculateMTBF()
+    public function calculateMTBF($tahun = null, $bulan = null)
     {
-        // Get all corrective maintenance records for this machine
+        // Default to current month/year if not provided
+        $tahun = $tahun ?? \Carbon\Carbon::now()->year;
+        $bulan = $bulan ?? \Carbon\Carbon::now()->month;
+
+        // Get corrective maintenance records for this machine and period
         $correctiveReports = $this->laporan()
             ->where('jenis_pekerjaan', 'corrective')
+            ->whereYear('tanggal_laporan', $tahun)
+            ->whereMonth('tanggal_laporan', $bulan)
             ->get();
 
         $failureCount = $correctiveReports->count();
 
-        // Calculate total downtime in hours
+        // Calculate total downtime in minutes for this period
         $totalDowntimeMinutes = $correctiveReports->sum('downtime_min');
-        $totalDowntimeHours = $totalDowntimeMinutes / 60;
+        $totalDowntimeHours = round($totalDowntimeMinutes / 60, 2);
 
-        // Calculate MTBF
-        $mtbf = $failureCount > 0 ? $totalDowntimeHours / $failureCount : 0;
+        // Calculate Planned Time (hari dalam bulan × 24 jam × 60 menit)
+        $daysInMonth = \Carbon\Carbon::create($tahun, $bulan)->daysInMonth;
+        $plannedTimeMinutes = $daysInMonth * 24 * 60;
+        $plannedTimeHours = round($plannedTimeMinutes / 60, 2);
+
+        // Calculate Running Time (Planned Time - Downtime)
+        $runningTimeMinutes = max(0, $plannedTimeMinutes - $totalDowntimeMinutes);
+        $runningTimeHours = round($runningTimeMinutes / 60, 2);
+
+        // Calculate MTBF = Running Time / Failure Count
+        $mtbf = $failureCount > 0 ? $runningTimeHours / $failureCount : 0;
 
         return [
             'machine_id' => $this->id,
             'machine_name' => $this->name,
             'failure_count' => $failureCount,
+            'planned_time_hours' => $plannedTimeHours,
             'total_downtime_minutes' => $totalDowntimeMinutes,
-            'total_downtime_hours' => round($totalDowntimeHours, 2),
+            'total_downtime_hours' => $totalDowntimeHours,
+            'running_time_hours' => $runningTimeHours,
             'mtbf_hours' => round($mtbf, 2),
             'mtbf_days' => round($mtbf / 24, 2),
             'line_name' => $this->line ? $this->line->name : 'Line Tidak Diketahui',
+            'tahun' => $tahun,
+            'bulan' => $bulan,
         ];
     }
 }

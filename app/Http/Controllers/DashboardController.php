@@ -211,7 +211,7 @@ class DashboardController extends Controller
         $mtbfMachineCount = 0;
 
         foreach ($machines as $machine) {
-            $mtbf = $machine->calculateMTBF();
+            $mtbf = $machine->calculateMTBF($tahun, $bulan);
             if ($mtbf['failure_count'] > 0) {
                 $mtbfData[] = $mtbf;
                 $totalMTBFHours += $mtbf['mtbf_hours'];
