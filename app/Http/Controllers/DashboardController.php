@@ -125,14 +125,14 @@ class DashboardController extends Controller
         $avgMTBF = 0;
         
         // Machine Performance Metrics
-        // Planned time = jumlah hari dalam bulan × 8 jam × 60 menit
+        // Planned time = jumlah hari dalam bulan × 24 jam × 60 menit
         $daysInMonth = \Carbon\Carbon::create($tahun, $bulan)->daysInMonth;
-        $totalPlannedTime = $daysInMonth * 8 * 60; // menit
+        $totalPlannedTime = $daysInMonth * 24 * 60; // menit
         
         // Total Breakdown = jumlah laporan dengan downtime
         $totalBreakdown = $baseQuery()->where('downtime_min', '>', 0)->count();
         
-        // Hitung Downtime dengan capping per hari (max 8 jam per hari = 480 menit)
+        // Hitung Downtime dengan capping per hari (max 24 jam per hari = 1440 menit)
         // Ini mencegah multiple machines pada hari yang sama menyebabkan availability negatif
         $dailyDowntimes = $baseQuery()
             ->where('downtime_min', '>', 0)
@@ -309,14 +309,14 @@ class DashboardController extends Controller
         $avgMTBF = 0;
         
         // Machine Performance Metrics
-        // Planned time = jumlah hari dalam bulan × 8 jam × 60 menit
+        // Planned time = jumlah hari dalam bulan × 24 jam × 60 menit
         $daysInMonth = \Carbon\Carbon::create($tahun, $bulan)->daysInMonth;
-        $totalPlannedTime = $daysInMonth * 8 * 60; // menit
+        $totalPlannedTime = $daysInMonth * 24 * 60; // menit
         
         // Total Breakdown = jumlah laporan dengan downtime
         $totalBreakdown = $baseQuery()->where('downtime_min', '>', 0)->count();
         
-        // Hitung Downtime dengan capping per hari (max 8 jam per hari = 480 menit)
+        // Hitung Downtime dengan capping per hari (max 24 jam per hari = 1440 menit)
         // Ini mencegah multiple machines pada hari yang sama menyebabkan availability negatif
         $dailyDowntimes = $baseQuery()
             ->where('downtime_min', '>', 0)

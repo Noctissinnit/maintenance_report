@@ -14,7 +14,7 @@ echo "Total laporan untuk bulan ini: " . $count . "\n";
 
 $daysInMonth = \Carbon\Carbon::create($now->year, $now->month)->daysInMonth;
 echo "Jumlah hari dalam bulan ini: " . $daysInMonth . "\n";
-$totalPlannedTime = $daysInMonth * 8 * 60;
+$totalPlannedTime = $daysInMonth * 24 * 60;
 echo "Total Planned Time (menit): " . $totalPlannedTime . "\n";
 
 $totalDowntime = \App\Models\LaporanHarian::whereYear('tanggal_laporan', $now->year)

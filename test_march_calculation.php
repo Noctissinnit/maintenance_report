@@ -8,7 +8,7 @@ $bulan = 3;  // Maret
 $tahun = 2026;
 
 $daysInMonth = \Carbon\Carbon::create($tahun, $bulan)->daysInMonth;
-$totalPlannedTime = $daysInMonth * 8 * 60;
+$totalPlannedTime = $daysInMonth * 24 * 60;
 
 echo "=== Maret 2026 ===\n";
 echo "Days in month: " . $daysInMonth . "\n";
