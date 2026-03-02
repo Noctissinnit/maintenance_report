@@ -252,7 +252,7 @@
             <div class="card-body text-center">
                 <div class="performance-icon"><i class="bi bi-exclamation-circle"></i></div>
                 <div class="performance-label">Down Time</div>
-                <div class="performance-value">{{ number_format((min($totalDowntime ?? 0, $totalPlannedTime ?? 0)) / 60, 2) }}</div>
+                <div class="performance-value">{{ number_format(($cappedTotalDowntime ?? 0) / 60, 2) }}</div>
                 <div class="performance-unit">jam</div>
             </div>
         </div>
@@ -262,7 +262,7 @@
             <div class="card-body text-center">
                 <div class="performance-icon"><i class="bi bi-play-circle"></i></div>
                 <div class="performance-label">Operation Time</div>
-                <div class="performance-value">{{ number_format((($totalPlannedTime ?? 0) - (min($totalDowntime ?? 0, $totalPlannedTime ?? 0))) / 60, 2) }}</div>
+                <div class="performance-value">{{ number_format((($totalPlannedTime ?? 0) - ($cappedTotalDowntime ?? 0)) / 60, 2) }}</div>
                 <div class="performance-unit">jam</div>
             </div>
         </div>

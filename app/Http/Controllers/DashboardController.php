@@ -234,6 +234,7 @@ class DashboardController extends Controller
         return view('dashboard.department-head', compact(
             'totalLaporan',
             'totalDowntime',
+            'cappedTotalDowntime',
             'avgMTTR',
             'avgMTBF',
             'availability',
@@ -390,6 +391,7 @@ class DashboardController extends Controller
         return view('dashboard.supervisor', compact(
             'totalLaporan',
             'totalDowntime',
+            'cappedTotalDowntime',
             'avgMTTR',
             'avgMTBF',
             'availability',
