@@ -13,6 +13,45 @@
         </div>
     </div>
 
+    <!-- Filter Section -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" action="{{ route('mtbf.index') }}" class="row align-items-end g-3">
+                        <div class="col-md-3">
+                            <label for="bulan" class="form-label">Month</label>
+                            <select name="bulan" id="bulan" class="form-select @if(!$showAllTime) @endif">
+                                @for($m = 1; $m <= 12; $m++)
+                                    <option value="{{ $m }}" @selected(!$showAllTime && $bulan == $m)>
+                                        {{ \Carbon\Carbon::createFromFormat('m', $m)->format('F') }}
+                                    </option>
+                                @endfor
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="tahun" class="form-label">Year</label>
+                            <input type="number" name="tahun" id="tahun" class="form-control" value="{{ $tahun }}" min="2020" max="2030">
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="all_time" id="all_time" value="1" @checked($showAllTime)>
+                                <label class="form-check-label" for="all_time">
+                                    Show All-Time Data
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-search"></i> Filter
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Statistics Cards -->
     <div class="row mb-4">
         <div class="col-md-3">
@@ -156,6 +195,20 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+
+    <!-- MTBF Formula Section -->
+    <div class="mt-4">
+        <div class="alert alert-info">
+            <h6 class="alert-heading mb-2"><i class="bi bi-calculator"></i> MTBF Calculation Formula</h6>
+            <p class="mb-2"><strong>MTBF = Running Time (hours) ÷ Number of Failures</strong></p>
+            <p class="small text-muted mb-0">
+                <strong>Where:</strong><br>
+                • Running Time = Planned Time - Downtime<br>
+                • Planned Time = Days in month × 24 hours<br>
+                • Downtime = Total downtime from corrective maintenance
+            </p>
         </div>
     </div>
 

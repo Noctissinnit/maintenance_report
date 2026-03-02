@@ -183,10 +183,16 @@
     <!-- MTBF Calculation Info -->
     <div class="alert alert-info">
         <h6 class="alert-heading mb-2"><i class="bi bi-info-circle"></i> MTBF Calculation Formula</h6>
-        <p class="mb-1"><strong>MTBF = Total Downtime (hours) ÷ Number of Failures</strong></p>
+        <p class="mb-2"><strong>MTBF = Running Time (hours) ÷ Number of Failures</strong></p>
+        <p class="mb-1 small text-muted"><strong>Where:</strong></p>
+        <ul class="mb-2 small text-muted">
+            <li>Running Time = Planned Time - Downtime</li>
+            <li>Planned Time = Days in month × 24 hours</li>
+            <li>Downtime = Total downtime from corrective maintenance</li>
+        </ul>
         <p class="mb-0 small text-muted">
             For machine <strong>{{ $machine->nama_mesin }}</strong>: 
-            {{ number_format($mtbfData['total_downtime_hours'], 2) }} hours ÷ {{ $mtbfData['failure_count'] }} failures 
+            {{ number_format($mtbfData['running_time_hours'] ?? 0, 2) }} hours ÷ {{ $mtbfData['failure_count'] }} failures 
             = {{ number_format($mtbfData['mtbf_hours'], 2) }} hours ({{ number_format($mtbfData['mtbf_days'], 2) }} days)
         </p>
     </div>

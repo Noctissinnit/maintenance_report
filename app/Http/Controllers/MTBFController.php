@@ -17,6 +17,11 @@ class MTBFController extends Controller
             abort(403, 'Unauthorized');
         }
 
+        // Get filter parameters (default to current month/year)
+        $bulan = request('bulan') ?? now()->month;
+        $tahun = request('tahun') ?? now()->year;
+        $showAllTime = request('all_time') == '1';
+
         // Get all active machines with their MTBF
         $machines = Machine::where('status', 'active')
             ->with('line')
@@ -27,7 +32,12 @@ class MTBFController extends Controller
         $totalDowntime = 0;
 
         foreach ($machines as $machine) {
-            $mtbf = $machine->calculateMTBF();
+            // If all_time is selected, calculate MTBF without period filter
+            if ($showAllTime) {
+                $mtbf = $machine->calculateMTBFAllTime();
+            } else {
+                $mtbf = $machine->calculateMTBF($tahun, $bulan);
+            }
             $mtbfData[] = $mtbf;
             $totalFailures += $mtbf['failure_count'];
             $totalDowntime += $mtbf['total_downtime_hours'];
@@ -55,6 +65,9 @@ class MTBFController extends Controller
         return view('mtbf.index', [
             'mtbfData' => $mtbfData,
             'statistics' => $statistics,
+            'bulan' => $bulan,
+            'tahun' => $tahun,
+            'showAllTime' => $showAllTime,
         ]);
     }
 
