@@ -26,7 +26,7 @@ echo "\nDaily downtime entries: " . count($dailyDowntimes) . "\n";
 
 $cappedTotalDowntime = 0;
 foreach ($dailyDowntimes as $day) {
-  $cap = min($day->total_downtime, 480);
+  $cap = min($day->total_downtime, 1440);
   echo "Date: " . $day->date . ", Downtime: " . $day->total_downtime . ", Capped: " . $cap . "\n";
   $cappedTotalDowntime += $cap;
 }

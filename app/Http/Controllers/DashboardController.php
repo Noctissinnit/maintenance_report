@@ -90,11 +90,17 @@ class DashboardController extends Controller
         $tahun = request('tahun') ?? now()->year;
         $mesin = request('mesin');
         $line = request('line');
+        $showAllTime = request('all_time') == '1';
 
         // Base query dengan filter
-        $baseQuery = function() use ($tahun, $bulan, $mesin, $line) {
-            $q = LaporanHarian::whereYear('tanggal_laporan', $tahun)
-                ->whereMonth('tanggal_laporan', $bulan);
+        $baseQuery = function() use ($tahun, $bulan, $mesin, $line, $showAllTime) {
+            $q = LaporanHarian::query();
+            
+            // Only apply date filters if not showing all time data
+            if (!$showAllTime) {
+                $q->whereYear('tanggal_laporan', $tahun)
+                  ->whereMonth('tanggal_laporan', $bulan);
+            }
 
             if ($mesin) {
                 $q->where('mesin_name', $mesin);
@@ -113,41 +119,62 @@ class DashboardController extends Controller
         // Total Laporan
         $totalLaporan = $baseQuery()->count();
         
-        // Total Downtime (menit) - hanya dari laporan dengan downtime (failure)
-        $totalDowntimeFailed = $baseQuery()->where('downtime_min', '>', 0)->sum('downtime_min') ?? 0;
+        // Total Downtime (menit) - hanya dari laporan corrective dengan downtime (failure)
+        // Match MTBF calculation which only counts corrective maintenance
+        $totalDowntimeFailed = $baseQuery()->where('jenis_pekerjaan', 'corrective')->where('downtime_min', '>', 0)->sum('downtime_min') ?? 0;
         $totalDowntime = $totalDowntimeFailed;
         
-        // Average MTTR (Mean Time To Repair) - rata-rata dari laporan yang punya downtime
-        $avgMTTR = $baseQuery()->where('downtime_min', '>', 0)
+        // Average MTTR (Mean Time To Repair) - rata-rata dari laporan corrective yang punya downtime
+        $avgMTTR = $baseQuery()->where('jenis_pekerjaan', 'corrective')->where('downtime_min', '>', 0)
             ->avg('downtime_min') ?? 0;
         
         // Average MTBF will be calculated from Machine model below
         $avgMTBF = 0;
         
-        // Machine Performance Metrics
-        // Planned time = jumlah hari dalam bulan × 24 jam × 60 menit
-        $daysInMonth = \Carbon\Carbon::create($tahun, $bulan)->daysInMonth;
-        $totalPlannedTime = $daysInMonth * 24 * 60; // menit
+        // Get Daily Downtime data first (needed for both Planned Time calc and downtime summation)
+        $allReports = $baseQuery()->get();
         
-        // Total Breakdown = jumlah laporan dengan downtime
-        $totalBreakdown = $baseQuery()->where('downtime_min', '>', 0)->count();
-        
-        // Hitung Downtime dengan capping per hari (max 24 jam per hari = 1440 menit)
-        // Ini mencegah multiple machines pada hari yang sama menyebabkan availability negatif
         $dailyDowntimes = $baseQuery()
             ->where('downtime_min', '>', 0)
             ->selectRaw('DATE(tanggal_laporan) as date, SUM(downtime_min) as total_downtime')
             ->groupBy(DB::raw('DATE(tanggal_laporan)'))
             ->get();
         
-        $cappedTotalDowntime = 0;
-        foreach ($dailyDowntimes as $day) {
-            // Cap each day's downtime at maximum 480 minutes (8 hours)
-            $cappedTotalDowntime += min($day->total_downtime, 480);
+        // Machine Performance Metrics
+        // Calculate Planned time based on all_time flag and available data
+        $totalPlannedTime = 0;
+        
+        if ($showAllTime) {
+            // For all-time data, query for earliest and latest report dates directly
+            $earliestReport = $baseQuery()->orderBy('tanggal_laporan', 'asc')->first();
+            $latestReport = $baseQuery()->orderBy('tanggal_laporan', 'desc')->first();
+            
+            if ($earliestReport && $latestReport) {
+                $startCarbon = \Carbon\Carbon::parse($earliestReport->tanggal_laporan);
+                $endCarbon = \Carbon\Carbon::parse($latestReport->tanggal_laporan);
+                $totalDays = $endCarbon->diffInDays($startCarbon) + 1;
+                $totalPlannedTime = $totalDays * 24 * 60; // menit
+            }
+        } else {
+            // For specific month, calculate from days in that month
+            $daysInMonth = \Carbon\Carbon::create($tahun, $bulan)->daysInMonth;
+            $totalPlannedTime = $daysInMonth * 24 * 60; // menit
         }
         
+        // Total Breakdown = jumlah laporan corrective dengan downtime
+        // Match MTBF calculation which only counts corrective maintenance
+        $totalBreakdown = $baseQuery()->where('jenis_pekerjaan', 'corrective')->where('downtime_min', '>', 0)->count();
+        
+        // Use raw downtime total (no per-day capping) to match MTBF page calculation
+        // This is already calculated in $totalDowntimeFailed above
+        $totalDowntimeMinutes = $totalDowntimeFailed;
+        
+        // Ensure values are positive and valid
+        $totalPlannedTime = max(0, $totalPlannedTime);
+        $totalDowntimeMinutes = max(0, $totalDowntimeMinutes);
+        
         // Hitung Availability dan Downtime Percentage dengan benar
-        $downtimePercent = $totalPlannedTime > 0 ? ($cappedTotalDowntime / $totalPlannedTime) * 100 : 0;
+        $downtimePercent = $totalPlannedTime > 0 ? ($totalDowntimeMinutes / $totalPlannedTime) * 100 : 0;
         $downtimePercent = min(100, $downtimePercent); // Cap at 100%
         $availability = 100 - $downtimePercent;
         
@@ -211,7 +238,12 @@ class DashboardController extends Controller
         $mtbfMachineCount = 0;
 
         foreach ($machines as $machine) {
-            $mtbf = $machine->calculateMTBF($tahun, $bulan);
+            // Use calculateMTBFAllTime() if all_time is selected, otherwise use calculateMTBF() for specific period
+            if ($showAllTime) {
+                $mtbf = $machine->calculateMTBFAllTime();
+            } else {
+                $mtbf = $machine->calculateMTBF($tahun, $bulan);
+            }
             if ($mtbf['failure_count'] > 0) {
                 $mtbfData[] = $mtbf;
                 $totalMTBFHours += $mtbf['mtbf_hours'];
@@ -234,7 +266,7 @@ class DashboardController extends Controller
         return view('dashboard.department-head', compact(
             'totalLaporan',
             'totalDowntime',
-            'cappedTotalDowntime',
+            'totalDowntimeMinutes',
             'avgMTTR',
             'avgMTBF',
             'availability',
@@ -258,7 +290,8 @@ class DashboardController extends Controller
             'mtbfData',
             'avgMTBFHours',
             'topReliableMachines',
-            'worstMachines'
+            'worstMachines',
+            'showAllTime'
         ));
     }
 
@@ -297,12 +330,13 @@ class DashboardController extends Controller
         // Total Laporan
         $totalLaporan = $baseQuery()->count();
         
-        // Total Downtime (menit) - hanya dari laporan dengan downtime (failure)
-        $totalDowntimeFailed = $baseQuery()->where('downtime_min', '>', 0)->sum('downtime_min') ?? 0;
+        // Total Downtime (menit) - hanya dari laporan corrective dengan downtime (failure)
+        // Match MTBF calculation which only counts corrective maintenance
+        $totalDowntimeFailed = $baseQuery()->where('jenis_pekerjaan', 'corrective')->where('downtime_min', '>', 0)->sum('downtime_min') ?? 0;
         $totalDowntime = $totalDowntimeFailed;
         
-        // Average MTTR (Mean Time To Repair) - rata-rata dari laporan yang punya downtime
-        $avgMTTR = $baseQuery()->where('downtime_min', '>', 0)
+        // Average MTTR (Mean Time To Repair) - rata-rata dari laporan corrective yang punya downtime
+        $avgMTTR = $baseQuery()->where('jenis_pekerjaan', 'corrective')->where('downtime_min', '>', 0)
             ->avg('downtime_min') ?? 0;
         
         // Average MTBF will be calculated from Machine model
@@ -313,25 +347,19 @@ class DashboardController extends Controller
         $daysInMonth = \Carbon\Carbon::create($tahun, $bulan)->daysInMonth;
         $totalPlannedTime = $daysInMonth * 24 * 60; // menit
         
-        // Total Breakdown = jumlah laporan dengan downtime
-        $totalBreakdown = $baseQuery()->where('downtime_min', '>', 0)->count();
+        // Total Breakdown = jumlah laporan corrective dengan downtime
+        // Match MTBF calculation which only counts corrective maintenance
+        $totalBreakdown = $baseQuery()->where('jenis_pekerjaan', 'corrective')->where('downtime_min', '>', 0)->count();
         
-        // Hitung Downtime dengan capping per hari (max 24 jam per hari = 1440 menit)
-        // Ini mencegah multiple machines pada hari yang sama menyebabkan availability negatif
-        $dailyDowntimes = $baseQuery()
-            ->where('downtime_min', '>', 0)
-            ->selectRaw('DATE(tanggal_laporan) as date, SUM(downtime_min) as total_downtime')
-            ->groupBy(DB::raw('DATE(tanggal_laporan)'))
-            ->get();
+        // Use raw downtime total (no per-day capping) to match MTBF page calculation
+        $totalDowntimeMinutes = $totalDowntimeFailed;
         
-        $cappedTotalDowntime = 0;
-        foreach ($dailyDowntimes as $day) {
-            // Cap each day's downtime at maximum 480 minutes (8 hours)
-            $cappedTotalDowntime += min($day->total_downtime, 480);
-        }
+        // Ensure values are positive and valid
+        $totalPlannedTime = max(0, $totalPlannedTime);
+        $totalDowntimeMinutes = max(0, $totalDowntimeMinutes);
         
         // Hitung Availability dan Downtime Percentage dengan benar
-        $downtimePercent = $totalPlannedTime > 0 ? ($cappedTotalDowntime / $totalPlannedTime) * 100 : 0;
+        $downtimePercent = $totalPlannedTime > 0 ? ($totalDowntimeMinutes / $totalPlannedTime) * 100 : 0;
         $downtimePercent = min(100, $downtimePercent); // Cap at 100%
         $availability = 100 - $downtimePercent;
         
@@ -391,7 +419,7 @@ class DashboardController extends Controller
         return view('dashboard.supervisor', compact(
             'totalLaporan',
             'totalDowntime',
-            'cappedTotalDowntime',
+            'totalDowntimeMinutes',
             'avgMTTR',
             'avgMTBF',
             'availability',

@@ -10,6 +10,7 @@ use App\Http\Controllers\MachineController;
 use App\Http\Controllers\LineController;
 use App\Http\Controllers\TemplateExportController;
 use App\Http\Controllers\MTBFController;
+use App\Http\Controllers\CommandController;
 
 Route::get('/', function () {
     return redirect()->route('dashboard');
@@ -95,6 +96,29 @@ Route::middleware(['auth'])->group(function () {
     // MTBF Analysis Routes
     Route::get('/mtbf', [MTBFController::class, 'index'])->name('mtbf.index');
     Route::get('/machines/{machine}/mtbf', [MTBFController::class, 'show'])->name('mtbf.show');
+    
+    // Command Routes - Routes yang lebih spesifik harus didefinisikan terlebih dahulu
+    // Department Head Routes
+    Route::get('/commands/my-list', [CommandController::class, 'listDepartmentHead'])->name('commands.list-department-head');
+    Route::get('/commands/create', [CommandController::class, 'create'])->name('commands.create');
+    Route::post('/commands', [CommandController::class, 'store'])->name('commands.store');
+    Route::get('/commands/{command}/edit', [CommandController::class, 'edit'])->name('commands.edit');
+    Route::put('/commands/{command}', [CommandController::class, 'update'])->name('commands.update');
+    Route::delete('/commands/{command}', [CommandController::class, 'destroy'])->name('commands.destroy');
+    
+    // Supervisor Routes
+    Route::get('/commands', [CommandController::class, 'index'])->name('commands.index');
+    Route::get('/commands/{command}', [CommandController::class, 'show'])->name('commands.show');
+    Route::get('/commands/{command}/edit-status', [CommandController::class, 'editStatus'])->name('commands.edit-status');
+    Route::put('/commands/{command}/update-status', [CommandController::class, 'updateStatus'])->name('commands.update-status');
+    
+    // Image Upload Route
+    Route::post('/commands/upload-image', [CommandController::class, 'uploadImage'])->name('commands.upload-image');
+    
+    // Test Summernote (optional - remove after testing)
+    Route::get('/commands/test/summernote', function() {
+        return view('commands.test-summernote');
+    })->name('commands.test-summernote');
     
     // Logout
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');

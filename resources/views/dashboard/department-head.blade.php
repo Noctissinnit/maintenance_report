@@ -171,7 +171,7 @@
             </select>
         </div>
         
-        <div class="col-md-3">
+        <div class="col-md-2">
             <label for="mesin" class="form-label">Mesin</label>
             <select name="mesin" id="mesin" class="form-select">
                 <option value="">-- Semua Mesin --</option>
@@ -190,8 +190,17 @@
                 @endforeach
             </select>
         </div>
+
+        <div class="col-md-2">
+            <div class="form-check form-switch mt-4">
+                <input class="form-check-input" type="checkbox" name="all_time" id="all_time" value="1" @if(request('all_time') == '1') checked @endif>
+                <label class="form-check-label" for="all_time" style="font-size: 0.9rem;">
+                    Semua Data
+                </label>
+            </div>
+        </div>
         
-        <div class="col-md-3 d-flex align-items-end">
+        <div class="col-md-2 d-flex align-items-end">
             <button type="submit" class="btn filter-btn w-100">
                 <i class="bi bi-funnel"></i> Filter Data
             </button>
@@ -258,7 +267,7 @@
             <div class="card-body text-center">
                 <div class="performance-icon"><i class="bi bi-exclamation-circle"></i></div>
                 <div class="performance-label">Down Time</div>
-                <div class="performance-value">{{ number_format(($cappedTotalDowntime ?? 0) / 60, 2) }}</div>
+                <div class="performance-value">{{ number_format(($totalDowntimeMinutes ?? 0) / 60, 2) }}</div>
                 <div class="performance-unit">jam</div>
             </div>
         </div>
@@ -268,7 +277,7 @@
             <div class="card-body text-center">
                 <div class="performance-icon"><i class="bi bi-play-circle"></i></div>
                 <div class="performance-label">Operation Time</div>
-                <div class="performance-value">{{ number_format((($totalPlannedTime ?? 0) - ($cappedTotalDowntime ?? 0)) / 60, 2) }}</div>
+                <div class="performance-value">{{ number_format((($totalPlannedTime ?? 0) - ($totalDowntimeMinutes ?? 0)) / 60, 2) }}</div>
                 <div class="performance-unit">jam</div>
             </div>
         </div>

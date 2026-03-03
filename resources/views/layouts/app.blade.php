@@ -3,12 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Sistem Laporan Maintenance')</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet">
+    <!-- Quill Editor CSS -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <style>
         :root {
             --primary-color: #4361ee;
@@ -639,6 +642,26 @@
                 display: none;
             }
         }
+        
+        /* Supervisor Notes Content - Image Sizing */
+        .supervisor-notes-content {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        .supervisor-notes-content img {
+            max-width: 100%;
+            height: auto;
+            max-height: 500px;
+            display: block;
+            margin: 1rem 0;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .supervisor-notes-content p {
+            margin-bottom: 1rem;
+        }
     </style>
     @yield('extra-css')
 </head>
@@ -714,6 +737,21 @@
                 </a>
             @endif
 
+            {{-- Command Management untuk Department Head dan Supervisor --}}
+            @if(Auth::user()->hasAnyRole(['department_head', 'supervisor']))
+                <div class="sidebar-nav-title">Command Management</div>
+                @if(Auth::user()->hasRole('department_head'))
+                    <a href="{{ route('commands.list-department-head') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'commands.list-department-head' || Route::current()->getName() === 'commands.create' || Route::current()->getName() === 'commands.edit') active @endif">
+                        <i class="bi bi-list-check"></i> Daftar Command Saya
+                    </a>
+                @endif
+                @if(Auth::user()->hasRole('supervisor'))
+                    <a href="{{ route('commands.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'commands.index' || Route::current()->getName() === 'commands.edit-status') active @endif">
+                        <i class="bi bi-clipboard-check"></i> Command Supervision
+                    </a>
+                @endif
+            @endif
+
             {{-- Management Menu untuk Admin saja --}}
             @if(Auth::user()->can('manage_employees'))
                 <div class="sidebar-nav-title">Management</div>
@@ -779,9 +817,33 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <!-- Quill Editor JS -->
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <script>
+        // Function untuk upload image - define di luar jQuery ready
+        function uploadImage(file, $summernote) {
+            const data = new FormData();
+            data.append('image', file);
+            data.append('_token', $('meta[name="csrf-token"]').attr('content'));
+            
+            $.ajax({
+                type: 'POST',
+                url: '{{ route("commands.upload-image") }}',
+                data: data,
+                contentType: false,
+                processData: false,
+                success: function(response) {
+                    $summernote.summernote('insertImage', response.url);
+                },
+                error: function(err) {
+                    alert('Gagal upload gambar: ' + (err.responseJSON?.message || 'Terjadi kesalahan'));
+                }
+            });
+        }
+    </script>
     <script>
         // Sidebar Toggle
         document.getElementById('sidebarToggle').addEventListener('click', function() {
@@ -814,6 +876,16 @@
         
         // Select2 Initialization
         $(document).ready(function() {
+            console.log('jQuery ready - Initializing Summernote and Select2');
+            
+            // Check if Summernote is loaded
+            if (typeof $.summernote !== 'undefined') {
+                console.log('Summernote library loaded successfully');
+            } else {
+                console.error('Summernote library NOT loaded!');
+            }
+            
+            // Initialize Select2
             $('.select2').select2({
                 theme: 'bootstrap-5',
                 allowClear: true,
@@ -829,6 +901,41 @@
                     }
                 }
             });
+
+            // Initialize Summernote
+            if ($('.summernote').length > 0) {
+                console.log('Initializing Summernote - found: ' + $('.summernote').length + ' element(s)');
+                $('.summernote').summernote({
+                    placeholder: 'Masukkan catatan di sini...',
+                    tabsize: 2,
+                    height: 300,
+                    minHeight: 250,
+                    maxHeight: 600,
+                    toolbar: [
+                        ['style', ['style']],
+                        ['font', ['bold', 'italic', 'underline', 'clear']],
+                        ['fontname', ['fontname']],
+                        ['color', ['color']],
+                        ['para', ['ul', 'ol', 'paragraph']],
+                        ['table', ['table']],
+                        ['insert', ['link', 'picture']],
+                        ['view', ['fullscreen', 'codeview', 'help']]
+                    ],
+                    callbacks: {
+                        onImageUpload: function(files) {
+                            console.log('Image upload triggered');
+                            uploadImage(files[0], $(this));
+                        }
+                    }
+                });
+                console.log('✓ Summernote initialized successfully');
+            } else {
+                if (typeof $.summernote === 'undefined') {
+                    console.error('✗ Summernote library not found');
+                } else {
+                    console.warn('✗ No .summernote elements on page');
+                }
+            }
         });
     </script>
     @yield('extra-js')

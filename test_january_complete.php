@@ -33,7 +33,7 @@ echo "Daily downtime entries: " . count($dailyDowntimes) . "\n";
 $cappedTotalDowntime = 0;
 $daysWithExcess = 0;
 foreach ($dailyDowntimes as $day) {
-  $cap = min($day->total_downtime, 480);
+  $cap = min($day->total_downtime, 1440);
   if ($cap < $day->total_downtime) {
     $daysWithExcess++;
   }
