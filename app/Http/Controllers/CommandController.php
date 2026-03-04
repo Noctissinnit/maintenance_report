@@ -34,20 +34,16 @@ class CommandController extends Controller
     }
 
     /**
-     * Show the form for creating a new command (for department heads)
+     * Show the form for creating a new command (for department heads and admins)
      */
     public function create()
     {
-        // Check if user is department head
-        if (!auth()->user()->hasRole('department_head')) {
+        // Check if user is department head or admin
+        if (!auth()->user()->hasRole(['department_head', 'admin'])) {
             abort(403, 'Unauthorized');
         }
 
-        $supervisors = User::role('supervisor')->pluck('name', 'id');
-
-        return view('commands.create', [
-            'supervisors' => $supervisors,
-        ]);
+        return view('commands.create');
     }
 
     /**
@@ -55,8 +51,8 @@ class CommandController extends Controller
      */
     public function store(Request $request)
     {
-        // Check if user is department head
-        if (!auth()->user()->hasRole('department_head')) {
+        // Check if user is department head or admin
+        if (!auth()->user()->hasRole(['department_head', 'admin'])) {
             abort(403, 'Unauthorized');
         }
 
@@ -64,9 +60,15 @@ class CommandController extends Controller
             'title' => 'required|string|max:255',
             'command_text' => 'required|string',
             'action_plan' => 'required|string',
-            'supervisor_id' => 'required|exists:users,id',
+            'supervisor_id' => 'nullable|exists:users,id',
             'due_date' => 'nullable|date',
         ]);
+
+        // Auto-assign to first supervisor if not provided
+        if (empty($validated['supervisor_id'])) {
+            $supervisor = User::role('supervisor')->first();
+            $validated['supervisor_id'] = $supervisor ? $supervisor->id : null;
+        }
 
         $validated['department_head_id'] = auth()->id();
         $validated['created_date'] = now();
@@ -79,18 +81,22 @@ class CommandController extends Controller
     }
 
     /**
-     * Display a listing of commands created by the department head
+     * Display a listing of commands created by the department head or admin
      */
     public function listDepartmentHead()
     {
-        // Check if user is department head
-        if (!auth()->user()->hasRole('department_head')) {
+        // Check if user is department head or admin
+        if (!auth()->user()->hasRole(['department_head', 'admin'])) {
             abort(403, 'Unauthorized');
         }
 
         $status = request('status');
-        $query = Command::where('department_head_id', auth()->id())
-            ->with(['departmentHead', 'supervisor']);
+        $query = Command::with(['departmentHead', 'supervisor']);
+        
+        // Admins can see all commands, department heads only see their own
+        if (!auth()->user()->hasRole('admin')) {
+            $query->where('department_head_id', auth()->id());
+        }
 
         if ($status) {
             $query->where('status', $status);
@@ -109,8 +115,11 @@ class CommandController extends Controller
      */
     public function show(Command $command)
     {
-        // Check authorization - can view if department head created it or if supervisor is assigned
-        if (auth()->id() !== $command->department_head_id && auth()->id() !== $command->supervisor_id) {
+        // Check authorization - can view if department head created it or if user is supervisor/admin
+        $canView = auth()->id() === $command->department_head_id || 
+                   auth()->user()->hasRole(['supervisor', 'admin']);
+        
+        if (!$canView) {
             abort(403, 'Unauthorized');
         }
 
@@ -120,12 +129,12 @@ class CommandController extends Controller
     }
 
     /**
-     * Show the form for editing command status (for supervisors)
+     * Show the form for editing command status (for supervisors and admins)
      */
     public function editStatus(Command $command)
     {
-        // Check if user is the assigned supervisor
-        if (auth()->id() !== $command->supervisor_id) {
+        // Check if user is supervisor or admin
+        if (!auth()->user()->hasRole(['supervisor', 'admin'])) {
             abort(403, 'Unauthorized');
         }
 
@@ -139,8 +148,8 @@ class CommandController extends Controller
      */
     public function updateStatus(Request $request, Command $command)
     {
-        // Check if user is the assigned supervisor
-        if (auth()->id() !== $command->supervisor_id) {
+        // Check if user is supervisor or admin
+        if (!auth()->user()->hasRole(['supervisor', 'admin'])) {
             abort(403, 'Unauthorized');
         }
 
@@ -156,12 +165,12 @@ class CommandController extends Controller
     }
 
     /**
-     * Show the form for editing a command (for department heads)
+     * Show the form for editing a command (for department heads and admins)
      */
     public function edit(Command $command)
     {
-        // Check if user is the department head who created the command
-        if (auth()->id() !== $command->department_head_id) {
+        // Check if user is the department head who created the command or admin
+        if (auth()->id() !== $command->department_head_id && !auth()->user()->hasRole('admin')) {
             abort(403, 'Unauthorized');
         }
 
@@ -170,11 +179,8 @@ class CommandController extends Controller
             abort(403, 'Cannot edit command that is not pending');
         }
 
-        $supervisors = User::role('supervisor')->pluck('name', 'id');
-
         return view('commands.edit', [
             'command' => $command,
-            'supervisors' => $supervisors,
         ]);
     }
 
@@ -183,8 +189,8 @@ class CommandController extends Controller
      */
     public function update(Request $request, Command $command)
     {
-        // Check if user is the department head who created the command
-        if (auth()->id() !== $command->department_head_id) {
+        // Check if user is the department head who created the command or admin
+        if (auth()->id() !== $command->department_head_id && !auth()->user()->hasRole('admin')) {
             abort(403, 'Unauthorized');
         }
 
@@ -197,9 +203,11 @@ class CommandController extends Controller
             'title' => 'required|string|max:255',
             'command_text' => 'required|string',
             'action_plan' => 'required|string',
-            'supervisor_id' => 'required|exists:users,id',
             'due_date' => 'nullable|date',
         ]);
+
+        // Keep the original supervisor_id if not provided
+        $validated['supervisor_id'] = $command->supervisor_id;
 
         $command->update($validated);
 
@@ -212,8 +220,8 @@ class CommandController extends Controller
      */
     public function destroy(Command $command)
     {
-        // Check if user is the department head who created the command
-        if (auth()->id() !== $command->department_head_id) {
+        // Check if user is the department head who created the command or admin
+        if (auth()->id() !== $command->department_head_id && !auth()->user()->hasRole('admin')) {
             abort(403, 'Unauthorized');
         }
 

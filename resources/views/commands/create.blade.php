@@ -49,18 +49,8 @@
                 @enderror
             </div>
 
-            <div class="mb-3">
-                <label for="supervisor_id" class="form-label">Pilih Supervisor <span class="text-danger">*</span></label>
-                <select class="form-select @error('supervisor_id') is-invalid @enderror" id="supervisor_id" name="supervisor_id" required>
-                    <option value="">-- Pilih Supervisor --</option>
-                    @foreach($supervisors as $id => $name)
-                        <option value="{{ $id }}" {{ old('supervisor_id') == $id ? 'selected' : '' }}>{{ $name }}</option>
-                    @endforeach
-                </select>
-                @error('supervisor_id')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-            </div>
+            <!-- Supervisor field is automatically assigned -->
+            <input type="hidden" name="supervisor_id" value=""
 
             <div class="mb-3">
                 <label for="due_date" class="form-label">Tanggal Jatuh Tempo</label>

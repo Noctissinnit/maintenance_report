@@ -1,11 +1,11 @@
 @extends('layouts.app')
 
-@section('title', 'Daftar Command Saya - Sistem Laporan Maintenance')
+@section('title', Auth::user()->hasRole('admin') ? 'Daftar Command - Sistem Laporan Maintenance' : 'Daftar Command Saya - Sistem Laporan Maintenance')
 
 @section('content')
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h4 class="mb-0">Command yang Saya Buat</h4>
+        <h4 class="mb-0">@if(Auth::user()->hasRole('admin'))Daftar Semua Command@else Command yang Saya Buat@endif</h4>
         <a href="{{ route('commands.create') }}" class="btn btn-success btn-sm">
             <i class="bi bi-plus-circle"></i> Buat Command Baru
         </a>
@@ -34,7 +34,7 @@
         </div>
 
         @if($commands->isEmpty())
-            <div class="alert alert-info">Belum ada command yang dibuat</div>
+            <div class="alert alert-info">Belum ada command</div>
         @else
             <div class="table-responsive">
                 <table class="table table-hover table-striped">
@@ -42,6 +42,7 @@
                         <tr>
                             <th>No</th>
                             <th>Judul</th>
+                            @if(Auth::user()->hasRole('admin'))<th>Dibuat Oleh</th>@endif
                             <th>Supervisor</th>
                             <th>Status</th>
                             <th>Tanggal Jatuh Tempo</th>
@@ -54,6 +55,7 @@
                             <tr>
                                 <td>{{ ($commands->currentPage() - 1) * $commands->perPage() + $loop->iteration }}</td>
                                 <td><strong>{{ $command->title }}</strong></td>
+                                @if(Auth::user()->hasRole('admin'))<td>{{ $command->departmentHead->name }}</td>@endif
                                 <td>{{ $command->supervisor->name }}</td>
                                 <td>
                                     @if($command->status === 'pending')

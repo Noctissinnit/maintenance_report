@@ -737,17 +737,23 @@
                 </a>
             @endif
 
-            {{-- Command Management untuk Department Head dan Supervisor --}}
-            @if(Auth::user()->hasAnyRole(['department_head', 'supervisor']))
+            {{-- Command Management untuk Department Head, Supervisor, dan Admin --}}
+            @if(Auth::user()->hasAnyRole(['department_head', 'supervisor', 'admin']))
                 <div class="sidebar-nav-title">Command Management</div>
                 @if(Auth::user()->hasRole('department_head'))
                     <a href="{{ route('commands.list-department-head') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'commands.list-department-head' || Route::current()->getName() === 'commands.create' || Route::current()->getName() === 'commands.edit') active @endif">
                         <i class="bi bi-list-check"></i> Daftar Command Saya
                     </a>
                 @endif
+               
                 @if(Auth::user()->hasRole('supervisor'))
                     <a href="{{ route('commands.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'commands.index' || Route::current()->getName() === 'commands.edit-status') active @endif">
                         <i class="bi bi-clipboard-check"></i> Command Supervision
+                    </a>
+                @endif
+                @if(Auth::user()->hasRole('admin'))
+                    <a href="{{ route('commands.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'commands.index' || Route::current()->getName() === 'commands.edit-status') active @endif">
+                        <i class="bi bi-clipboard-check"></i> Supervisi Command
                     </a>
                 @endif
             @endif
