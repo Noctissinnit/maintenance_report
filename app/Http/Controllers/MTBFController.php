@@ -12,8 +12,13 @@ class MTBFController extends Controller
      */
     public function index()
     {
-        // Check permission - allow users with view_own_laporan permission or department_head role
-        if (!auth()->user()->can('view_own_laporan') && !auth()->user()->hasRole('department_head')) {
+        // Check permission - restrict operator access
+        // Only allow admin, department_head, supervisor
+        if (auth()->user()->hasRole('operator')) {
+            abort(403, 'Operator tidak memiliki akses ke MTBF Analysis');
+        }
+
+        if (!auth()->user()->can('view_own_laporan') && !auth()->user()->hasRole(['admin', 'department_head', 'supervisor'])) {
             abort(403, 'Unauthorized');
         }
 
@@ -76,8 +81,13 @@ class MTBFController extends Controller
      */
     public function show($machineId)
     {
-        // Check permission - allow users with view_own_laporan permission or department_head role
-        if (!auth()->user()->can('view_own_laporan') && !auth()->user()->hasRole('department_head')) {
+        // Check permission - restrict operator access
+        // Only allow admin, department_head, supervisor
+        if (auth()->user()->hasRole('operator')) {
+            abort(403, 'Operator tidak memiliki akses ke MTBF Analysis');
+        }
+
+        if (!auth()->user()->can('view_own_laporan') && !auth()->user()->hasRole(['admin', 'department_head', 'supervisor'])) {
             abort(403, 'Unauthorized');
         }
 

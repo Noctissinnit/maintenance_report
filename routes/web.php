@@ -95,9 +95,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/spare-parts/monitoring', [SparePartController::class, 'monitoring'])->name('spare-parts.monitoring');
     });
     
-    // MTBF Analysis Routes
-    Route::get('/mtbf', [MTBFController::class, 'index'])->name('mtbf.index');
-    Route::get('/machines/{machine}/mtbf', [MTBFController::class, 'show'])->name('mtbf.show');
+    // MTBF Analysis Routes - Restricted to admin, department_head, supervisor
+    Route::middleware(['role:admin,department_head,supervisor'])->group(function () {
+        Route::get('/mtbf', [MTBFController::class, 'index'])->name('mtbf.index');
+        Route::get('/machines/{machine}/mtbf', [MTBFController::class, 'show'])->name('mtbf.show');
+    });
     
     // Command Routes - Routes yang lebih spesifik harus didefinisikan terlebih dahulu
     // Department Head Routes
