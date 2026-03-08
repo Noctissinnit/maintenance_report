@@ -40,6 +40,9 @@ class SparePartController extends Controller
             'code' => 'nullable|string|max:100',
             'description' => 'nullable|string',
             'category' => 'nullable|string|max:100',
+            'stock' => 'required|numeric|min:0',
+            'unit' => 'required|string|max:50',
+            'notes' => 'nullable|string',
             'status' => 'required|in:active,inactive',
         ]);
 
@@ -66,6 +69,9 @@ class SparePartController extends Controller
             'code' => 'nullable|string|max:100',
             'description' => 'nullable|string',
             'category' => 'nullable|string|max:100',
+            'stock' => 'required|numeric|min:0',
+            'unit' => 'required|string|max:50',
+            'notes' => 'nullable|string',
             'status' => 'required|in:active,inactive',
         ]);
 
@@ -159,6 +165,9 @@ class SparePartController extends Controller
                         'code' => !empty($row['code']) ? trim($row['code']) : null,
                         'description' => !empty($row['description']) ? trim($row['description']) : null,
                         'category' => !empty($row['category']) ? trim($row['category']) : null,
+                        'stock' => !empty($row['stock']) ? (float)$row['stock'] : 0,
+                        'unit' => !empty($row['unit']) ? trim($row['unit']) : 'pcs',
+                        'notes' => !empty($row['notes']) ? trim($row['notes']) : null,
                         'status' => strtolower($row['status'] ?? 'active') === 'inactive' ? 'inactive' : 'active',
                     ]);
 
@@ -194,34 +203,46 @@ class SparePartController extends Controller
 
         $sheet->setCellValue('A1', 'name');
         $sheet->setCellValue('B1', 'code');
-        $sheet->setCellValue('C1', 'description');
-        $sheet->setCellValue('D1', 'category');
-        $sheet->setCellValue('E1', 'status');
+        $sheet->setCellValue('C1', 'category');
+        $sheet->setCellValue('D1', 'stock');
+        $sheet->setCellValue('E1', 'unit');
+        $sheet->setCellValue('F1', 'description');
+        $sheet->setCellValue('G1', 'notes');
+        $sheet->setCellValue('H1', 'status');
 
         $headerStyle = [
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '4472C4']],
             'alignment' => ['horizontal' => 'center', 'vertical' => 'center'],
         ];
-        $sheet->getStyle('A1:E1')->applyFromArray($headerStyle);
+        $sheet->getStyle('A1:H1')->applyFromArray($headerStyle);
 
         $sheet->getColumnDimension('A')->setWidth(25);
-        $sheet->getColumnDimension('B')->setWidth(20);
-        $sheet->getColumnDimension('C')->setWidth(30);
-        $sheet->getColumnDimension('D')->setWidth(20);
-        $sheet->getColumnDimension('E')->setWidth(15);
+        $sheet->getColumnDimension('B')->setWidth(15);
+        $sheet->getColumnDimension('C')->setWidth(15);
+        $sheet->getColumnDimension('D')->setWidth(12);
+        $sheet->getColumnDimension('E')->setWidth(12);
+        $sheet->getColumnDimension('F')->setWidth(25);
+        $sheet->getColumnDimension('G')->setWidth(25);
+        $sheet->getColumnDimension('H')->setWidth(12);
 
         $sheet->setCellValue('A2', 'Bearing 6203');
         $sheet->setCellValue('B2', 'BP001');
-        $sheet->setCellValue('C2', 'Bearing standard untuk motor');
-        $sheet->setCellValue('D2', 'Bearing');
-        $sheet->setCellValue('E2', 'active');
+        $sheet->setCellValue('C2', 'Bearing');
+        $sheet->setCellValue('D2', 50);
+        $sheet->setCellValue('E2', 'pcs');
+        $sheet->setCellValue('F2', 'Bearing standard untuk motor');
+        $sheet->setCellValue('G2', 'Stok minimal 30 pcs');
+        $sheet->setCellValue('H2', 'active');
 
         $sheet->setCellValue('A3', 'Belt Konveyor');
         $sheet->setCellValue('B3', 'BK001');
-        $sheet->setCellValue('C3', 'Belt konveyor ukuran standar');
-        $sheet->setCellValue('D3', 'Belt');
-        $sheet->setCellValue('E3', 'active');
+        $sheet->setCellValue('C3', 'Belt');
+        $sheet->setCellValue('D3', 10);
+        $sheet->setCellValue('E3', 'meter');
+        $sheet->setCellValue('F3', 'Belt konveyor ukuran standar');
+        $sheet->setCellValue('G3', 'Stok minimal 5 meter');
+        $sheet->setCellValue('H3', 'active');
 
         $writer = new Xlsx($spreadsheet);
         $fileName = 'template_import_sparepart_' . date('Y-m-d_H-i-s') . '.xlsx';

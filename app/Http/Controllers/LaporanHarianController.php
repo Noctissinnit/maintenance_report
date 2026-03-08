@@ -145,7 +145,7 @@ class LaporanHarianController extends Controller
             'line_id' => 'required|integer|exists:lines,id',
             'catatan' => 'nullable|string',
             'spare_part_id' => 'nullable|integer|exists:spare_parts,id',
-            'qty_sparepart' => 'integer|min:0',
+            'qty_sparepart' => 'numeric|min:0',
             'komentar_sparepart' => 'nullable|string',
             'jenis_pekerjaan' => 'required|in:corrective,preventive,change over product,modifikasi,utility',
             'scope' => 'required|in:Electrik,Mekanik,Utility,Building',
@@ -188,6 +188,20 @@ class LaporanHarianController extends Controller
             $validated['downtime_min'] = 0;
         }
         
+        // Kurangi stok spare part jika ada
+        if ($validated['spare_part_id'] && isset($validated['qty_sparepart']) && $validated['qty_sparepart'] > 0) {
+            $sparePart = SparePart::find($validated['spare_part_id']);
+            if ($sparePart) {
+                $newStock = $sparePart->stock - $validated['qty_sparepart'];
+                if ($newStock < 0) {
+                    return redirect()->back()
+                        ->withErrors(['qty_sparepart' => "Stok spare part tidak cukup! Stok tersedia: {$sparePart->stock}"])
+                        ->withInput();
+                }
+                $sparePart->update(['stock' => $newStock]);
+            }
+        }
+        
         LaporanHarian::create($validated);
 
         return redirect()->route('laporan.index')->with('success', 'Laporan berhasil disimpan!');
@@ -198,7 +212,14 @@ class LaporanHarianController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $laporan = LaporanHarian::with(['machine', 'line', 'sparePart', 'user'])->findOrFail($id);
+
+        // Check permission
+        if ($laporan->user_id !== Auth::id() && !Auth::user()->hasRole('admin')) {
+            abort(403, 'Unauthorized');
+        }
+
+        return view('laporan.show', compact('laporan'));
     }
 
     /**
@@ -312,6 +333,14 @@ class LaporanHarianController extends Controller
 
         if (!Auth::user()->can('delete_laporan')) {
             abort(403, 'Unauthorized');
+        }
+
+        // Restore stok spare part jika ada
+        if ($laporan->spare_part_id && $laporan->qty_sparepart > 0) {
+            $sparePart = SparePart::find($laporan->spare_part_id);
+            if ($sparePart) {
+                $sparePart->update(['stock' => $sparePart->stock + $laporan->qty_sparepart]);
+            }
         }
 
         $laporan->delete();
@@ -831,5 +860,27 @@ class LaporanHarianController extends Controller
         header('Content-Disposition: attachment; filename="' . $fileName . '"');
         $writer->save('php://output');
         exit;
+    }
+
+    /**
+     * Get line information for a selected machine (AJAX endpoint)
+     */
+    public function getMachineLineInfo($machineId)
+    {
+        $machine = Machine::with('line')->find($machineId);
+        
+        if (!$machine || !$machine->line) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Machine or Line not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'line_id' => $machine->line->id,
+            'line_name' => $machine->line->name,
+            'machine_name' => $machine->name
+        ]);
     }
 }

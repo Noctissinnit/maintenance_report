@@ -35,6 +35,22 @@
                 </div>
             </div>
 
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="stock" class="form-label">Stok <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control @error('stock') is-invalid @enderror" 
+                        id="stock" name="stock" value="{{ old('stock', $sparePart->stock) }}" step="0.01" min="0" required>
+                    @error('stock')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="unit" class="form-label">Satuan <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control @error('unit') is-invalid @enderror" 
+                        id="unit" name="unit" value="{{ old('unit', $sparePart->unit ?? 'pcs') }}" required>
+                    @error('unit')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+            </div>
+
             <div class="mb-3">
                 <label for="description" class="form-label">Deskripsi</label>
                 <textarea class="form-control @error('description') is-invalid @enderror" 

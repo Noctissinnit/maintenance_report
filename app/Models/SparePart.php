@@ -11,6 +11,9 @@ class SparePart extends Model
         'code',
         'description',
         'category',
+        'stock',
+        'unit',
+        'notes',
         'status',
     ];
 

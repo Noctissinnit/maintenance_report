@@ -36,7 +36,7 @@
         @if($commands->isEmpty())
             <div class="alert alert-info">Belum ada command</div>
         @else
-            <div class="table-responsive">
+            <div class="table-responsive" >
                 <table class="table table-hover table-striped">
                     <thead class="table-dark">
                         <tr>
@@ -55,7 +55,7 @@
                             <tr>
                                 <td>{{ ($commands->currentPage() - 1) * $commands->perPage() + $loop->iteration }}</td>
                                 <td><strong>{{ $command->title }}</strong></td>
-                                @if(Auth::user()->hasRole('admin'))<td>{{ $command->departmentHead->name }}</td>@endif
+                                @if(Auth::user()->hasRole('admin','department_head'))<td>{{ $command->departmentHead->name }}</td>@endif
                                 <td>{{ $command->supervisor->name }}</td>
                                 <td>
                                     @if($command->status === 'pending')

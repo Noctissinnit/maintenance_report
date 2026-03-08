@@ -39,6 +39,7 @@
                             <th>Nama Spare Part</th>
                             <th>Kode</th>
                             <th>Kategori</th>
+                            <th>Stok</th>
                             <th>Deskripsi</th>
                             <th>Status</th>
                             <th>Dibuat</th>
@@ -52,6 +53,11 @@
                                 <td><strong>{{ $part->name }}</strong></td>
                                 <td>{{ $part->code ?? '-' }}</td>
                                 <td>{{ $part->category ?? '-' }}</td>
+                                <td>
+                                    <span class="badge {{ $part->stock < 5 ? 'bg-danger' : 'bg-success' }}">
+                                        {{ $part->stock }} {{ $part->unit ?? 'pcs' }}
+                                    </span>
+                                </td>
                                 <td>{{ Str::limit($part->description, 30) ?? '-' }}</td>
                                 <td>
                                     @if($part->status === 'active')

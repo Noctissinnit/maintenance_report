@@ -93,7 +93,7 @@
                         <th style="width: 150px;">Tipe Laporan</th>
                         <th style="width: 120px;">Jenis Pekerjaan</th>
                         <th style="width: 120px;" class="text-center">Downtime</th>
-                        <th style="width: 180px;" class="text-center">Aksi</th>
+                        <th style="width: 230px;" class="text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -139,6 +139,9 @@
                                 <span class="badge bg-secondary">{{ $item->downtime_min }} min</span>
                             </td>
                             <td class="text-center">
+                                <a href="{{ route('laporan.show', $item->id) }}" class="btn btn-sm btn-outline-info" title="Lihat detail laporan">
+                                    <i class="bi bi-eye"></i> Lihat
+                                </a>
                                 <a href="{{ route('laporan.edit', $item->id) }}" class="btn btn-sm btn-outline-warning" title="Edit laporan">
                                     <i class="bi bi-pencil"></i> Edit
                                 </a>

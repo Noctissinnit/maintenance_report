@@ -664,6 +664,7 @@
         }
     </style>
     @yield('extra-css')
+    @livewireStyles
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark">
@@ -945,6 +946,7 @@
         });
     </script>
     @yield('extra-js')
+    @livewireScripts
 </body>
 </html>
 

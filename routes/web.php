@@ -29,7 +29,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/templates/download-line', [TemplateExportController::class, 'downloadLineTemplate'])->name('templates.download-line');
     Route::get('/templates/download-spare-part', [TemplateExportController::class, 'downloadSparePartTemplate'])->name('templates.download-spare-part');
     
-    // Laporan Routes
+    // Laporan Routes (specific routes must come before generic {id} routes)
     Route::get('/laporan/import-form', [LaporanHarianController::class, 'importForm'])->name('laporan.import-form');
     Route::post('/laporan/import', [LaporanHarianController::class, 'import'])->name('laporan.import');
     Route::get('/laporan/template', [LaporanHarianController::class, 'template'])->name('laporan.template');
@@ -38,8 +38,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/laporan/create', [LaporanHarianController::class, 'create'])->name('laporan.create');
     Route::post('/laporan', [LaporanHarianController::class, 'store'])->name('laporan.store');
     Route::get('/laporan/{id}/edit', [LaporanHarianController::class, 'edit'])->name('laporan.edit');
+    Route::get('/laporan/{id}', [LaporanHarianController::class, 'show'])->name('laporan.show');
     Route::put('/laporan/{id}', [LaporanHarianController::class, 'update'])->name('laporan.update');
     Route::delete('/laporan/{id}', [LaporanHarianController::class, 'destroy'])->name('laporan.destroy');
+    Route::get('/api/machine/{machineId}/line', [LaporanHarianController::class, 'getMachineLineInfo'])->name('api.machine-line');
     
     // Employee Management (Admin only)
     Route::middleware(['can:manage_employees'])->group(function () {
