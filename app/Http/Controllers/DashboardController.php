@@ -142,6 +142,16 @@ class DashboardController extends Controller
         
         // Machine Performance Metrics
         // Calculate Planned time based on all_time flag and available data
+        // FORMULA: Planned Time = Jumlah Waktu dalam 1 (bulan/tahun) × Jumlah Mesin yang aktif
+        
+        // Get count of active machines based on filters
+        $activeMachinesQuery = Machine::where('status', 'active');
+        if ($mesin) {
+            $activeMachinesQuery->where('name', $mesin);
+        }
+        $activeMachinesCount = $activeMachinesQuery->count();
+        $activeMachinesCount = max(1, $activeMachinesCount); // Minimal 1 machine
+        
         $totalPlannedTime = 0;
         
         if ($showAllTime) {
@@ -153,12 +163,14 @@ class DashboardController extends Controller
                 $startCarbon = \Carbon\Carbon::parse($earliestReport->tanggal_laporan);
                 $endCarbon = \Carbon\Carbon::parse($latestReport->tanggal_laporan);
                 $totalDays = $endCarbon->diffInDays($startCarbon) + 1;
-                $totalPlannedTime = $totalDays * 24 * 60; // menit
+                // Formula: days × 24 hours × 60 minutes × number of active machines
+                $totalPlannedTime = $totalDays * 24 * 60 * $activeMachinesCount;
             }
         } else {
             // For specific month, calculate from days in that month
             $daysInMonth = \Carbon\Carbon::create($tahun, $bulan)->daysInMonth;
-            $totalPlannedTime = $daysInMonth * 24 * 60; // menit
+            // Formula: days × 24 hours × 60 minutes × number of active machines
+            $totalPlannedTime = $daysInMonth * 24 * 60 * $activeMachinesCount;
         }
         
         // Total Breakdown = jumlah laporan corrective dengan downtime
@@ -343,9 +355,18 @@ class DashboardController extends Controller
         $avgMTBF = 0;
         
         // Machine Performance Metrics
-        // Planned time = jumlah hari dalam bulan × 24 jam × 60 menit
+        // FORMULA: Planned Time = Jumlah Waktu dalam 1 (bulan/tahun) × Jumlah Mesin yang aktif
+        // Get count of active machines based on filters
+        $activeMachinesQuery = Machine::where('status', 'active');
+        if ($mesin) {
+            $activeMachinesQuery->where('name', $mesin);
+        }
+        $activeMachinesCount = $activeMachinesQuery->count();
+        $activeMachinesCount = max(1, $activeMachinesCount); // Minimal 1 machine
+        
         $daysInMonth = \Carbon\Carbon::create($tahun, $bulan)->daysInMonth;
-        $totalPlannedTime = $daysInMonth * 24 * 60; // menit
+        // Formula: days × 24 hours × 60 minutes × number of active machines
+        $totalPlannedTime = $daysInMonth * 24 * 60 * $activeMachinesCount;
         
         // Total Breakdown = jumlah laporan corrective dengan downtime
         // Match MTBF calculation which only counts corrective maintenance
