@@ -18,8 +18,12 @@ class MTBFController extends Controller
             abort(403, 'Operator tidak memiliki akses ke MTBF Analysis');
         }
 
-        if (!auth()->user()->can('view_own_laporan') && !auth()->user()->hasRole(['admin', 'department_head', 'supervisor'])) {
-            abort(403, 'Unauthorized');
+        // Allow if user has one of the allowed roles OR has the permission
+        $isAllowed = auth()->user()->hasRole(['admin', 'department_head', 'supervisor']) || 
+                     auth()->user()->can('view_own_laporan');
+        
+        if (!$isAllowed) {
+            abort(403, 'Anda tidak memiliki akses ke MTBF Analysis');
         }
 
         // Get filter parameters (default to current month/year)
@@ -87,8 +91,12 @@ class MTBFController extends Controller
             abort(403, 'Operator tidak memiliki akses ke MTBF Analysis');
         }
 
-        if (!auth()->user()->can('view_own_laporan') && !auth()->user()->hasRole(['admin', 'department_head', 'supervisor'])) {
-            abort(403, 'Unauthorized');
+        // Allow if user has one of the allowed roles OR has the permission
+        $isAllowed = auth()->user()->hasRole(['admin', 'department_head', 'supervisor']) || 
+                     auth()->user()->can('view_own_laporan');
+        
+        if (!$isAllowed) {
+            abort(403, 'Anda tidak memiliki akses ke MTBF Analysis');
         }
 
         $machine = Machine::findOrFail($machineId);
