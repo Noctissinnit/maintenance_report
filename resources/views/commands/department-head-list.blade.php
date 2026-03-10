@@ -1,11 +1,15 @@
 @extends('layouts.app')
 
-@section('title', Auth::user()->hasRole('admin') ? 'Daftar Command - Sistem Laporan Maintenance' : 'Daftar Command Saya - Sistem Laporan Maintenance')
-
 @section('content')
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h4 class="mb-0">@if(Auth::user()->hasRole('admin'))Daftar Semua Command@else Command yang Saya Buat@endif</h4>
+        <h4 class="mb-0">
+            @if (Auth::user()->hasRole('admin'))
+                Daftar Semua Command
+            @else
+                Command yang Saya Buat
+            @endif
+        </h4>
         <a href="{{ route('commands.create') }}" class="btn btn-success btn-sm">
             <i class="bi bi-plus-circle"></i> Buat Command Baru
         </a>
@@ -33,17 +37,20 @@
             </form>
         </div>
 
-        @if($commands->isEmpty())
+        @if ($commands->isEmpty())
             <div class="alert alert-info">Belum ada command</div>
         @else
-            <div class="table-responsive" >
+            <div class="table-responsive">
                 <table class="table table-hover table-striped">
                     <thead class="table-dark">
                         <tr>
                             <th>No</th>
                             <th>Judul</th>
-                            @if(Auth::user()->hasRole('admin'))<th>Dibuat Oleh</th>@endif
+                            @if (Auth::user()->hasRole('admin'))
+                                <th>Dibuat Oleh</th>
+                            @endif
                             <th>Supervisor</th>
+                            <th>Role</th>
                             <th>Status</th>
                             <th>Tanggal Jatuh Tempo</th>
                             <th>Dibuat</th>
@@ -51,25 +58,27 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($commands as $command)
+                        @foreach ($commands as $command)
                             <tr>
                                 <td>{{ ($commands->currentPage() - 1) * $commands->perPage() + $loop->iteration }}</td>
                                 <td><strong>{{ $command->title }}</strong></td>
-                                @if(Auth::user()->hasRole('admin','department_head'))<td>{{ $command->departmentHead->name }}</td>@endif
+                                @if (Auth::user()->hasRole(['admin', 'department_head']))
+                                    <td>{{ $command->departmentHead->name }}</td>
+                                @endif
                                 <td>{{ $command->supervisor->name }}</td>
                                 <td>
-                                    @if($command->status === 'pending')
+                                    @if ($command->status === 'pending')
                                         <span class="badge bg-warning text-dark">Pending</span>
-                                    @elseif($command->status === 'in_progress')
+                                    @elseif ($command->status === 'in_progress')
                                         <span class="badge bg-info">In Progress</span>
-                                    @elseif($command->status === 'completed')
+                                    @elseif ($command->status === 'completed')
                                         <span class="badge bg-success">Completed</span>
                                     @else
                                         <span class="badge bg-danger">Cancelled</span>
                                     @endif
                                 </td>
                                 <td>
-                                    @if($command->due_date)
+                                    @if ($command->due_date)
                                         {{ $command->due_date->format('d M Y') }}
                                     @else
                                         -
@@ -80,7 +89,7 @@
                                     <a href="{{ route('commands.show', $command->id) }}" class="btn btn-info btn-sm" title="Lihat Detail">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    @if($command->status === 'pending')
+                                    @if ($command->status === 'pending')
                                         <a href="{{ route('commands.edit', $command->id) }}" class="btn btn-primary btn-sm" title="Edit">
                                             <i class="bi bi-pencil"></i>
                                         </a>
@@ -106,4 +115,5 @@
         @endif
     </div>
 </div>
+
 @endsection

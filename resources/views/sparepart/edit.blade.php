@@ -39,7 +39,7 @@
                 <div class="col-md-6 mb-3">
                     <label for="stock" class="form-label">Stok <span class="text-danger">*</span></label>
                     <input type="number" class="form-control @error('stock') is-invalid @enderror" 
-                        id="stock" name="stock" value="{{ old('stock', $sparePart->stock) }}" step="0.01" min="0" required>
+                        id="stock" name="stock" value="{{ old('stock', $sparePart->stock) }}" step="1" min="0" required>
                     @error('stock')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
 

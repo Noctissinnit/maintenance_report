@@ -238,7 +238,7 @@
     <div class="col-md-3">
         <div class="kpi-card">
             <div class="kpi-label">Rata-rata MTBF</div>
-            <div class="kpi-value">{{ number_format($avgMTBF, 2) }}</div>
+            <div class="kpi-value">{{ number_format($avgMTBFHours, 2) }}</div>
             <div class="kpi-label">menit</div>
         </div>
     </div>

@@ -743,7 +743,7 @@
                 <div class="sidebar-nav-title">Command Management</div>
                 @if(Auth::user()->hasRole('department_head'))
                     <a href="{{ route('commands.list-department-head') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'commands.list-department-head' || Route::current()->getName() === 'commands.create' || Route::current()->getName() === 'commands.edit') active @endif">
-                        <i class="bi bi-list-check"></i> Daftar Command Saya
+                        <i class="bi bi-list-check"></i> Command Department Head
                     </a>
                 @endif
                

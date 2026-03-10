@@ -55,7 +55,7 @@
                                 <td>{{ $part->category ?? '-' }}</td>
                                 <td>
                                     <span class="badge {{ $part->stock < 5 ? 'bg-danger' : 'bg-success' }}">
-                                        {{ $part->stock }} {{ $part->unit ?? 'pcs' }}
+                                        {{ (int)$part->stock }} {{ $part->unit ?? 'pcs' }}
                                     </span>
                                 </td>
                                 <td>{{ Str::limit($part->description, 30) ?? '-' }}</td>
