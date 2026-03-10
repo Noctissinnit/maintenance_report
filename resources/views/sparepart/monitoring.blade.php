@@ -180,6 +180,7 @@
                 <th style="width: 5%;">No</th>
                 <th style="width: 75%;">Nama Spare Part</th>
                 <th style="width: 20%; text-align: center;">Total Pemakaian</th>
+                <th style="width: 10%; text-align: center;">Stok Tersedia</th>
             </tr>
         </thead>
         <tbody>
@@ -189,6 +190,9 @@
                     <td>{{ $part->sparepart }}</td>
                     <td style="text-align: center;">
                         <span class="qty-badge">{{ $part->total_qty }}</span>
+                    </td>
+                    <td style="text-align: center;">
+                        <span class="qty-badge">{{ $stockAvailable }}</span>
                     </td>
                 </tr>
             @empty

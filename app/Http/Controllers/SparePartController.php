@@ -262,6 +262,9 @@ class SparePartController extends Controller
         $bulan = $request->get('bulan') ?? now()->month;
         $tahun = $request->get('tahun') ?? now()->year;
 
+        $stockAvailable = SparePart::sum('stock');
+
+
         // Get spare parts usage for selected month
         $usage = LaporanHarian::select('sparepart', DB::raw('SUM(qty_sparepart) as total_qty'))
             ->whereYear('created_at', $tahun)
@@ -286,7 +289,8 @@ class SparePartController extends Controller
             'bulan',
             'tahun',
             'totalUsage',
-            'availableMonths'
+            'availableMonths',
+            'stockAvailable'
         ));
     }
 }
