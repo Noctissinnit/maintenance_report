@@ -177,10 +177,11 @@
     <table class="table table-hover mb-0">
         <thead>
             <tr>
-                <th style="width: 5%;">No</th>
-                <th style="width: 75%;">Nama Spare Part</th>
-                <th style="width: 20%; text-align: center;">Total Pemakaian</th>
-                <th style="width: 10%; text-align: center;">Stok Tersedia</th>
+                <th style="width: 4%;">No</th>
+                <th style="width: 50%;">Nama Spare Part</th>
+                <th style="width: 12%; text-align: center;">Stock Awal</th>
+                <th style="width: 12%; text-align: center;">Total Pemakaian</th>
+                <th style="width: 12%; text-align: center;">Stok Tersedia</th>
             </tr>
         </thead>
         <tbody>
@@ -189,15 +190,20 @@
                     <td>{{ $index + 1 }}</td>
                     <td>{{ $part->sparepart }}</td>
                     <td style="text-align: center;">
+                        <span class="qty-badge">{{ $part->stock_awal ?? 0 }}</span>
+                    </td>
+                    <td style="text-align: center;">
                         <span class="qty-badge">{{ $part->total_qty }}</span>
                     </td>
                     <td style="text-align: center;">
-                        <span class="qty-badge">{{ $stockAvailable }}</span>
+                        <span class="qty-badge">
+                            {{ max(0, ($part->stock_awal ?? 0) - $part->total_qty) }}
+                        </span>
                     </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="3">
+                    <td colspan="5">
                         <div class="empty-state">
                             <i class="bi bi-inbox"></i>
                             <p>Tidak ada data spare part untuk bulan {{ $months[$bulan] ?? 'pilihan' }}</p>
@@ -207,6 +213,16 @@
             @endforelse
         </tbody>
     </table>
+</div>
+
+<!-- Information -->
+<div class="alert alert-info mt-4" style="border-radius: 8px;">
+    <h6 class="alert-heading"><i class="bi bi-info-circle"></i> Informasi Kolom</h6>
+    <ul class="mb-0" style="margin-left: 20px;">
+        <li><strong>STOCK AWAL</strong> : Stok spare part yang tersedia pada awal periode bulan</li>
+        <li><strong>TOTAL PEMAKAIAN</strong> : Total jumlah spare part yang telah digunakan dalam bulan tersebut</li>
+        <li><strong>STOK TERSEDIA</strong> : Stok awal dikurangi total pemakaian (STOCK AWAL - TOTAL PEMAKAIAN)</li>
+    </ul>
 </div>
 
 <!-- Summary Card -->

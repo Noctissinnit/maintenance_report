@@ -41,7 +41,7 @@ class MTBFController extends Controller
         $totalDowntime = 0;
 
         foreach ($machines as $machine) {
-            // If all_time is selected, calculate MTBF without period filter
+         
             if ($showAllTime) {
                 $mtbf = $machine->calculateMTBFAllTime();
             } else {
@@ -52,12 +52,12 @@ class MTBFController extends Controller
             $totalDowntime += $mtbf['total_downtime_hours'];
         }
 
-        // Sort by MTBF descending (higher MTBF = more reliable)
+      
         usort($mtbfData, function ($a, $b) {
             return $b['mtbf_hours'] <=> $a['mtbf_hours'];
         });
 
-        // Calculate average MTBF
+       
         $machineCount = count($mtbfData);
         $averageMTBFArray = array_filter(array_column($mtbfData, 'mtbf_hours'));
         $averageMTBF = count($averageMTBFArray) > 0 ? array_sum($averageMTBFArray) / count($averageMTBFArray) : 0;

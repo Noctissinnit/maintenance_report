@@ -266,19 +266,24 @@ class SparePartController extends Controller
 
 
         // Get spare parts usage for selected month
-        $usage = LaporanHarian::select('sparepart', DB::raw('SUM(qty_sparepart) as total_qty'))
-            ->whereYear('created_at', $tahun)
-            ->whereMonth('created_at', $bulan)
-            ->whereNotNull('sparepart')
-            ->where('sparepart', '<>', '')
-            ->groupBy('sparepart')
+        $usage = LaporanHarian::select(
+                'laporan_harian.sparepart',
+                DB::raw('SUM(laporan_harian.qty_sparepart) as total_qty'),
+                'spare_parts.stock as stock_awal'
+            )
+            ->leftJoin('spare_parts', 'spare_parts.name', '=', 'laporan_harian.sparepart')
+            ->whereYear('laporan_harian.created_at', $tahun)
+            ->whereMonth('laporan_harian.created_at', $bulan)
+            ->whereNotNull('laporan_harian.sparepart')
+            ->where('laporan_harian.sparepart', '<>', '')
+            ->groupBy('laporan_harian.sparepart', 'spare_parts.stock')
             ->orderByDesc('total_qty')
             ->get();
 
-        // Get total spare parts count
+          
         $totalUsage = $usage->sum('total_qty');
 
-        // Get all available months with data
+
         $availableMonths = LaporanHarian::select(DB::raw('MONTH(created_at) as bulan'))
             ->distinct()
             ->orderBy('bulan')
