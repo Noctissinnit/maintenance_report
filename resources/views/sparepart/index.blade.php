@@ -25,6 +25,13 @@
             <a href="{{ route('spare-parts.monitoring') }}" class="btn btn-secondary btn-sm">
                 <i class="bi bi-graph-up"></i> Monitoring Penggunaan
             </a>
+            <form action="{{ route('spare-parts.clear-all') }}" method="POST" style="display: inline;" onsubmit="return confirm('⚠️ PERHATIAN!\nIni akan menghapus SEMUA data Spare Part!\n\nYakin ingin melanjutkan?');">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-danger btn-sm">
+                    <i class="bi bi-trash"></i> Clear Data
+                </button>
+            </form>
         </div>
     </div>
     <div class="card-body">

@@ -240,4 +240,18 @@ class MachineController extends Controller
         $writer->save('php://output');
         exit;
     }
+
+    /**
+     * Clear all machines data
+     */
+    public function clearAll()
+    {
+        try {
+            $count = Machine::count();
+            Machine::truncate();
+            return redirect()->route('machines.index')->with('success', "$count data mesin berhasil dihapus!");
+        } catch (\Exception $e) {
+            return redirect()->route('machines.index')->with('error', 'Gagal menghapus data: ' . $e->getMessage());
+        }
+    }
 }

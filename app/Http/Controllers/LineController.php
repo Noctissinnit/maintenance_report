@@ -216,4 +216,18 @@ class LineController extends Controller
         $writer->save('php://output');
         exit;
     }
+
+    /**
+     * Clear all lines data
+     */
+    public function clearAll()
+    {
+        try {
+            $count = Line::count();
+            Line::truncate();
+            return redirect()->route('lines.index')->with('success', "$count data line berhasil dihapus!");
+        } catch (\Exception $e) {
+            return redirect()->route('lines.index')->with('error', 'Gagal menghapus data: ' . $e->getMessage());
+        }
+    }
 }

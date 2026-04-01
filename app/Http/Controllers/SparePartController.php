@@ -298,5 +298,19 @@ class SparePartController extends Controller
             'stockAvailable'
         ));
     }
+
+    /**
+     * Clear all spare parts data
+     */
+    public function clearAll()
+    {
+        try {
+            $count = SparePart::count();
+            SparePart::truncate();
+            return redirect()->route('spare-parts.index')->with('success', "$count data spare part berhasil dihapus!");
+        } catch (\Exception $e) {
+            return redirect()->route('spare-parts.index')->with('error', 'Gagal menghapus data: ' . $e->getMessage());
+        }
+    }
 }
 

@@ -16,6 +16,13 @@
             <a href="{{ route('lines.template') }}" class="btn btn-primary btn-sm" title="Download template untuk import data">
                 <i class="bi bi-file-earmark-spreadsheet"></i> Template
             </a>
+            <form action="{{ route('lines.clear-all') }}" method="POST" style="display: inline;" onsubmit="return confirm('⚠️ PERHATIAN!\nIni akan menghapus SEMUA data Line!\n\nYakin ingin melanjutkan?');">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-danger btn-sm">
+                    <i class="bi bi-trash"></i> Clear Data
+                </button>
+            </form>
         </div>
     </div>
     <div class="card-body">

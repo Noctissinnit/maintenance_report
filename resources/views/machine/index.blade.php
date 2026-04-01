@@ -22,6 +22,13 @@
             <a href="{{ route('machines.import-form') }}" class="btn btn-warning btn-sm">
                 <i class="bi bi-upload"></i> Import
             </a>
+            <form action="{{ route('machines.clear-all') }}" method="POST" style="display: inline;" onsubmit="return confirm('⚠️ PERHATIAN!\nIni akan menghapus SEMUA data Mesin!\n\nYakin ingin melanjutkan?');">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-danger btn-sm">
+                    <i class="bi bi-trash"></i> Clear Data
+                </button>
+            </form>
         </div>
     </div>
     <div class="card-body">

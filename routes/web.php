@@ -56,6 +56,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/lines/import-form', [LineController::class, 'importForm'])->name('lines.import-form');
         Route::post('/lines/import', [LineController::class, 'import'])->name('lines.import');
         Route::get('/lines/template', [LineController::class, 'template'])->name('lines.template');
+        Route::delete('/lines/clear-all', [LineController::class, 'clearAll'])->name('lines.clear-all');
         Route::get('/lines', [LineController::class, 'index'])->name('lines.index');
         Route::get('/lines/create', [LineController::class, 'create'])->name('lines.create');
         Route::post('/lines', [LineController::class, 'store'])->name('lines.store');
@@ -69,6 +70,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/machines/import-form', [MachineController::class, 'importForm'])->name('machines.import-form');
         Route::post('/machines/import', [MachineController::class, 'import'])->name('machines.import');
         Route::get('/machines/template', [MachineController::class, 'template'])->name('machines.template');
+        Route::delete('/machines/clear-all', [MachineController::class, 'clearAll'])->name('machines.clear-all');
         Route::get('/machines', [MachineController::class, 'index'])->name('machines.index');
         Route::get('/machines/create', [MachineController::class, 'create'])->name('machines.create');
         Route::post('/machines', [MachineController::class, 'store'])->name('machines.store');
@@ -83,6 +85,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/spare-parts/import-form', [SparePartController::class, 'importForm'])->name('spare-parts.import-form');
         Route::post('/spare-parts/import', [SparePartController::class, 'import'])->name('spare-parts.import');
         Route::get('/spare-parts/template', [SparePartController::class, 'template'])->name('spare-parts.template');
+        Route::delete('/spare-parts/clear-all', [SparePartController::class, 'clearAll'])->name('spare-parts.clear-all');
         Route::get('/spare-parts', [SparePartController::class, 'index'])->name('spare-parts.index');
         Route::get('/spare-parts/create', [SparePartController::class, 'create'])->name('spare-parts.create');
         Route::post('/spare-parts', [SparePartController::class, 'store'])->name('spare-parts.store');
