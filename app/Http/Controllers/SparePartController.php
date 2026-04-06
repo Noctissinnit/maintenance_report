@@ -306,9 +306,20 @@ class SparePartController extends Controller
     {
         try {
             $count = SparePart::count();
+            
+            // Disable foreign key checks
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+            
+            // Delete laporan first (child table), then spare parts
+            LaporanHarian::where(DB::raw('spare_part_id IS NOT NULL'))->delete();
             SparePart::truncate();
+            
+            // Re-enable foreign key checks
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            
             return redirect()->route('spare-parts.index')->with('success', "$count data spare part berhasil dihapus!");
         } catch (\Exception $e) {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
             return redirect()->route('spare-parts.index')->with('error', 'Gagal menghapus data: ' . $e->getMessage());
         }
     }

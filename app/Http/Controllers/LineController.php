@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Line;
+use App\Models\Machine;
+use App\Models\LaporanHarian;
 use App\Http\Requests\ImportLineRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -224,9 +227,21 @@ class LineController extends Controller
     {
         try {
             $count = Line::count();
+            
+            // Disable foreign key checks
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+            
+            // Delete related machines and their laporan
+            Machine::truncate();
+            LaporanHarian::truncate();
             Line::truncate();
-            return redirect()->route('lines.index')->with('success', "$count data line berhasil dihapus!");
+            
+            // Re-enable foreign key checks
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            
+            return redirect()->route('lines.index')->with('success', "$count data line dan data terkait berhasil dihapus!");
         } catch (\Exception $e) {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
             return redirect()->route('lines.index')->with('error', 'Gagal menghapus data: ' . $e->getMessage());
         }
     }

@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Machine;
 use App\Models\Line;
+use App\Models\LaporanHarian;
 use App\Http\Requests\ImportMachineRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Auth;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -248,9 +250,20 @@ class MachineController extends Controller
     {
         try {
             $count = Machine::count();
+            
+            // Disable foreign key checks
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+            
+            // Delete laporan first (child table), then machines
+            LaporanHarian::truncate();
             Machine::truncate();
-            return redirect()->route('machines.index')->with('success', "$count data mesin berhasil dihapus!");
+            
+            // Re-enable foreign key checks
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            
+            return redirect()->route('machines.index')->with('success', "$count data mesin dan laporan terkait berhasil dihapus!");
         } catch (\Exception $e) {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
             return redirect()->route('machines.index')->with('error', 'Gagal menghapus data: ' . $e->getMessage());
         }
     }
