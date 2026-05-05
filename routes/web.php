@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LaporanHarianController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DashboardPdfController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\SparePartController;
 use App\Http\Controllers\MachineController;
@@ -23,6 +24,9 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware(['auth'])->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    
+    // Dashboard PDF Export
+    Route::get('/dashboard/download-pdf', [DashboardPdfController::class, 'downloadDepartmentHeadPdf'])->name('dashboard.download-pdf');
     
     // Template Export Routes
     Route::get('/templates/download-machine', [TemplateExportController::class, 'downloadMachineTemplate'])->name('templates.download-machine');

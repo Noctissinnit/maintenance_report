@@ -51,6 +51,27 @@
         color: white;
     }
 
+    .filter-section .btn-danger {
+        background: linear-gradient(135deg, #dc3545, #e74c3c);
+        border: none;
+        color: white;
+        font-weight: 600;
+        border-radius: 0.625rem;
+        transition: all 0.3s ease;
+        padding: 0.625rem;
+        min-width: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .filter-section .btn-danger:hover {
+        background: linear-gradient(135deg, #c82333, #bd2130);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+        color: white;
+    }
+
     .performance-card {
         border: 1px solid #e8ecf1;
         border-radius: 0.75rem;
@@ -154,11 +175,27 @@
         <div class="col-md-2">
             <label for="bulan" class="form-label">Bulan</label>
             <select name="bulan" id="bulan" class="form-select">
-                @for($m = 1; $m <= 12; $m++)
+                @php
+                    $bulanList = [
+                        1 => 'January',
+                        2 => 'February',
+                        3 => 'March',
+                        4 => 'April',
+                        5 => 'May',
+                        6 => 'June',
+                        7 => 'July',
+                        8 => 'August',
+                        9 => 'September',
+                        10 => 'October',
+                        11 => 'November',
+                        12 => 'December'
+                    ];
+                @endphp
+                @foreach($bulanList as $m => $bulanName)
                     <option value="{{ $m }}" @if($bulan == $m) selected @endif>
-                        {{ \Carbon\Carbon::createFromFormat('n', $m)->format('F') }}
+                        {{ $bulanName }}
                     </option>
-                @endfor
+                @endforeach
             </select>
         </div>
         
@@ -200,10 +237,13 @@
             </div>
         </div>
         
-        <div class="col-md-2 d-flex align-items-end">
+        <div class="col-md-2 d-flex align-items-end gap-2">
             <button type="submit" class="btn filter-btn w-100">
                 <i class="bi bi-funnel"></i> Filter Data
             </button>
+            <a href="{{ route('dashboard.download-pdf', ['bulan' => $bulan, 'tahun' => $tahun, 'mesin' => $mesin, 'line' => $line, 'all_time' => request('all_time')]) }}" class="btn btn-danger" title="Download PDF Report">
+                <i class="bi bi-download"></i>
+            </a>
         </div>
     </form>
 </div>
