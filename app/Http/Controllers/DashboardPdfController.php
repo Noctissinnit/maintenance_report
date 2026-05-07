@@ -204,7 +204,8 @@ class DashboardPdfController extends Controller
             'line',
             'topReliableMachines',
             'worstMachines',
-            'avgMTBFHours'
+            'avgMTBFHours',
+            'mtbfData'
         );
 
         // Generate PDF
