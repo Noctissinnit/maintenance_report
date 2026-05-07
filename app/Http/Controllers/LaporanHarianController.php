@@ -9,6 +9,7 @@ use App\Models\Line;
 use App\Http\Requests\ImportLaporanRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -28,81 +29,206 @@ class LaporanHarianController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        // Get search parameters
-        $search = $request->input('search', '');
-        $mesin_filter = $request->input('mesin', '');
-        $line_filter = $request->input('line', '');
-        $jenis_filter = $request->input('jenis_pekerjaan', '');
-        $tipe_filter = $request->input('tipe_laporan', '');
-        $start_date = $request->input('start_date', '');
-        $end_date = $request->input('end_date', '');
+        // Get filter parameters - similar to department head dashboard
+        $bulan = $request->input('bulan') ?? now()->month;
+        $tahun = $request->input('tahun') ?? now()->year;
+        $mesin = $request->input('mesin');
+        $line = $request->input('line');
+        $showAllTime = $request->input('all_time') == '1';
 
-        // Base query
-        $query = LaporanHarian::select(
-                'id',
-                'user_id',
-                'machine_id',
-                'line_id',
-                'mesin_name',
-                'line',
-                'jenis_pekerjaan',
-                'tipe_laporan',
-                'downtime_min',
-                'tanggal_laporan'
-            )
-            ->with([
-                'machine:id,name',
-                'line:id,name'
-            ])
-            ->orderBy('tanggal_laporan', 'desc');
+        // Base query untuk user sendiri (atau semua jika admin)
+        $baseQuery = function() use ($tahun, $bulan, $mesin, $line, $showAllTime) {
+            $q = LaporanHarian::query();
+            
+            // Jika bukan admin → hanya lihat laporan sendiri
+            if (!Auth::user()->hasRole('admin')) {
+                $q->where('user_id', Auth::id());
+            }
+            
+            // Only apply date filters if not showing all time data
+            if (!$showAllTime) {
+                $q->whereYear('tanggal_laporan', $tahun)
+                  ->whereMonth('tanggal_laporan', $bulan);
+            }
 
-        // Jika bukan admin → hanya lihat laporan sendiri
-        if (!Auth::user()->hasRole('admin')) {
-            $query->where('user_id', Auth::id());
+            if ($mesin) {
+                $q->where('mesin_name', $mesin);
+            }
+
+            if ($line) {
+                $q->where('line', $line);
+            }
+
+            return $q;
+        };
+
+        // Query untuk metrics
+        $query = $baseQuery();
+        
+        // Total Laporan
+        $totalLaporan = $baseQuery()->count();
+        
+        // Total Downtime (menit) - hanya dari laporan corrective dengan downtime
+        $totalDowntimeFailed = $baseQuery()->where('jenis_pekerjaan', 'corrective')->where('downtime_min', '>', 0)->sum('downtime_min') ?? 0;
+        $totalDowntime = $totalDowntimeFailed;
+        
+        // Average MTTR (Mean Time To Repair) - rata-rata dari laporan corrective yang punya downtime
+        $avgMTTR = $baseQuery()->where('jenis_pekerjaan', 'corrective')->where('downtime_min', '>', 0)
+            ->avg('downtime_min') ?? 0;
+        
+        // Get Daily Downtime data
+        $dailyDowntimes = $baseQuery()
+            ->where('downtime_min', '>', 0)
+            ->selectRaw('DATE(tanggal_laporan) as date, SUM(downtime_min) as total_downtime')
+            ->groupBy(DB::raw('DATE(tanggal_laporan)'))
+            ->get();
+        
+        // Machine Performance Metrics
+        $activeMachinesQuery = Machine::where('status', 'active');
+        if ($mesin) {
+            $activeMachinesQuery->where('name', $mesin);
+        }
+        $activeMachinesCount = $activeMachinesQuery->count();
+        $activeMachinesCount = max(1, $activeMachinesCount);
+        
+        $totalPlannedTime = 0;
+        
+        if ($showAllTime) {
+            $earliestReport = $baseQuery()->orderBy('tanggal_laporan', 'asc')->first();
+            $latestReport = $baseQuery()->orderBy('tanggal_laporan', 'desc')->first();
+            
+            if ($earliestReport && $latestReport) {
+                $startCarbon = \Carbon\Carbon::parse($earliestReport->tanggal_laporan);
+                $endCarbon = \Carbon\Carbon::parse($latestReport->tanggal_laporan);
+                $totalDays = $endCarbon->diffInDays($startCarbon) + 1;
+                $totalPlannedTime = $totalDays * 24 * 60 * $activeMachinesCount;
+            }
+        } else {
+            $daysInMonth = \Carbon\Carbon::create($tahun, $bulan)->daysInMonth;
+            $totalPlannedTime = $daysInMonth * 24 * 60 * $activeMachinesCount;
+        }
+        
+        // Total Breakdown
+        $totalBreakdown = $baseQuery()->where('jenis_pekerjaan', 'corrective')->where('downtime_min', '>', 0)->count();
+        
+        $totalDowntimeMinutes = $totalDowntimeFailed;
+        
+        // Ensure values are positive and valid
+        $totalPlannedTime = max(0, $totalPlannedTime);
+        $totalDowntimeMinutes = max(0, $totalDowntimeMinutes);
+        
+        // Hitung Availability dan Downtime Percentage
+        $downtimePercent = $totalPlannedTime > 0 ? ($totalDowntimeMinutes / $totalPlannedTime) * 100 : 0;
+        $downtimePercent = min(100, $downtimePercent);
+        $availability = 100 - $downtimePercent;
+        
+        // Maintenance Types (Convert menit to jam)
+        $totalCorrectiveMaint = ($baseQuery()->where('jenis_pekerjaan', 'corrective')->sum('downtime_min') ?? 0) / 60;
+        $totalPreventiveMaint = ($baseQuery()->where('jenis_pekerjaan', 'preventive')->sum('downtime_min') ?? 0) / 60;
+        $totalChangeOver = ($baseQuery()->where('jenis_pekerjaan', 'change over product')->sum('downtime_min') ?? 0) / 60;
+        
+        // Top 10 Mesin dengan downtime terbanyak
+        $topDowntimeMesin = $baseQuery()->select('mesin_name', DB::raw('SUM(downtime_min) as total_downtime'))
+            ->groupBy('mesin_name')
+            ->orderByDesc('total_downtime')
+            ->limit(10)
+            ->get();
+        
+        // Top 7 Breakdown by Line
+        $topBreakdownLine = $baseQuery()->select('line', DB::raw('COUNT(*) as breakdown_count'))
+            ->groupBy('line')
+            ->orderByDesc('breakdown_count')
+            ->limit(7)
+            ->get();
+        
+        // Top 7 Breakdown by Catatan
+        $topBreakdownCatatan = $baseQuery()->select('catatan', DB::raw('COUNT(*) as breakdown_count'))
+            ->whereNotNull('catatan')
+            ->where('catatan', '<>', '')
+            ->groupBy('catatan')
+            ->orderByDesc('breakdown_count')
+            ->limit(7)
+            ->get();
+        
+        // Monitoring Spare Part
+        $spareParts = $baseQuery()->select('sparepart', DB::raw('SUM(qty_sparepart) as total_qty'))
+            ->whereNotNull('sparepart')
+            ->where('sparepart', '<>', '')
+            ->groupBy('sparepart')
+            ->orderByDesc('total_qty')
+            ->limit(10)
+            ->get();
+        
+        // Machine Performance by Type
+        $machinePerformance = $baseQuery()->select('mesin_name', DB::raw('COUNT(*) as count'))
+            ->groupBy('mesin_name')
+            ->orderByDesc('count')
+            ->limit(10)
+            ->get();
+
+        // Get unique values untuk filter
+        $allMesins = LaporanHarian::distinct()->pluck('mesin_name')->sort();
+        $allLines = LaporanHarian::distinct()->pluck('line')->sort();
+
+        // MTBF Metrics dari Machine Model
+        $machines = Machine::where('status', 'active')->with('line')->get();
+        $mtbfData = [];
+        $totalMTBFHours = 0;
+        $mtbfMachineCount = 0;
+
+        foreach ($machines as $machine) {
+            if ($showAllTime) {
+                $mtbf = $machine->calculateMTBFAllTime();
+            } else {
+                $mtbf = $machine->calculateMTBF($tahun, $bulan);
+            }
+            if ($mtbf['failure_count'] > 0) {
+                $mtbfData[] = $mtbf;
+                $totalMTBFHours += $mtbf['mtbf_hours'];
+                $mtbfMachineCount++;
+            }
         }
 
-        // Apply search filters
-        if (!empty($search)) {
-            $query->where(function ($q) use ($search) {
-                $q->where('mesin_name', 'like', '%' . $search . '%')
-                  ->orWhere('line', 'like', '%' . $search . '%')
-                  ->orWhere('catatan', 'like', '%' . $search . '%')
-                  ->orWhere('jenis_pekerjaan', 'like', '%' . $search . '%');
-            });
-        }
+        // Sort by MTBF descending
+        usort($mtbfData, function ($a, $b) {
+            return $b['mtbf_hours'] <=> $a['mtbf_hours'];
+        });
 
-        // Filter by mesin
-        if (!empty($mesin_filter)) {
-            $query->where('mesin_name', 'like', '%' . $mesin_filter . '%');
-        }
+        // Average MTBF
+        $avgMTBFHours = $mtbfMachineCount > 0 ? $totalMTBFHours / $mtbfMachineCount : 0;
 
-        // Filter by line
-        if (!empty($line_filter)) {
-            $query->where('line', 'like', '%' . $line_filter . '%');
-        }
+        // Get top machines by reliability
+        $topReliableMachines = array_slice($mtbfData, 0, 5);
+        $worstMachines = array_slice(array_reverse($mtbfData), 0, 5);
 
-        // Filter by jenis pekerjaan
-        if (!empty($jenis_filter)) {
-            $query->where('jenis_pekerjaan', $jenis_filter);
-        }
-
-        // Filter by tipe laporan
-        if (!empty($tipe_filter)) {
-            $query->where('tipe_laporan', $tipe_filter);
-        }
-
-        // Filter by date range
-        if (!empty($start_date)) {
-            $query->where('tanggal_laporan', '>=', $start_date);
-        }
-        if (!empty($end_date)) {
-            $query->where('tanggal_laporan', '<=', $end_date);
-        }
-
-        // Eksekusi query - gunakan 15 items per page
-        $laporan = $query->paginate(15)->appends($request->query());
-
-        return view('laporan.index', compact('laporan', 'search', 'mesin_filter', 'line_filter', 'jenis_filter', 'tipe_filter', 'start_date', 'end_date'));
+        return view('laporan.index', compact(
+            'totalLaporan',
+            'totalDowntime',
+            'totalDowntimeMinutes',
+            'avgMTTR',
+            'avgMTBFHours',
+            'availability',
+            'downtimePercent',
+            'topDowntimeMesin',
+            'topBreakdownLine',
+            'topBreakdownCatatan',
+            'spareParts',
+            'machinePerformance',
+            'totalPlannedTime',
+            'totalBreakdown',
+            'totalCorrectiveMaint',
+            'totalPreventiveMaint',
+            'totalChangeOver',
+            'bulan',
+            'tahun',
+            'mesin',
+            'line',
+            'allMesins',
+            'allLines',
+            'mtbfData',
+            'topReliableMachines',
+            'worstMachines'
+        ));
     }
 
 

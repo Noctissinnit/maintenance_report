@@ -1,9 +1,487 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Department Head Dashboard Report</title>
+    <title>Dashboard Laporan - Laporan PDF</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f8f9fa;
+            color: #333;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+        
+        .page {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            page-break-after: always;
+        }
+        
+        .page-break {
+            page-break-after: always;
+            margin-bottom: 20px;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #6f42c1 0%, #4a2975 100%);
+            color: white;
+            padding: 30px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        /* Content */
+        .content {
+            padding: 20px;
+        }
+        
+        .section-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #4a2975;
+            margin: 20px 0 10px 0;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #6f42c1;
+        }
+        
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .kpi-card {
+            background: linear-gradient(135deg, #f0f4ff 0%, #f9f7ff 100%);
+            border: 1px solid #ddd;
+            border-left: 4px solid #6f42c1;
+            padding: 12px;
+            text-align: center;
+        }
+        
+        .kpi-label {
+            font-size: 9px;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        
+        .kpi-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #6f42c1;
+            margin-bottom: 2px;
+        }
+        
+        .kpi-unit {
+            font-size: 9px;
+            color: #999;
+        }
+        
+        /* Performance Cards */
+        .performance-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .performance-card {
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            padding: 10px;
+            text-align: center;
+        }
+        
+        .performance-card-label {
+            font-size: 9px;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        
+        .performance-card-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #6f42c1;
+        }
+        
+        .performance-card-unit {
+            font-size: 8px;
+            color: #999;
+            margin-top: 2px;
+        }
+        
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 10px;
+        }
+        
+        table thead {
+            background: #f0f0f0;
+            border-bottom: 2px solid #6f42c1;
+        }
+        
+        table th {
+            padding: 8px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        table td {
+            padding: 7px 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        table tbody tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 7px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: 600;
+        }
+        
+        .badge-success { background: #d4edda; color: #155724; }
+        .badge-danger { background: #f8d7da; color: #721c24; }
+        .badge-warning { background: #fff3cd; color: #856404; }
+        .badge-info { background: #d1ecf1; color: #0c5460; }
+        
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .info-box {
+            background: #f0ebf8;
+            border-left: 3px solid #6f42c1;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 11px;
+        }
+        
+        .filter-info {
+            background: #f0f4ff;
+            border: 1px solid #d0d8ff;
+            padding: 8px;
+            margin-bottom: 15px;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="page">
+    <!-- Header -->
+    <div class="header">
+        <h1>Dashboard Laporan - Monitoring Aktivitas</h1>
+        <p>Laporan Komprehensif Sistem Pemeliharaan Mesin</p>
+    </div>
+    
+    <!-- Filter Info -->
+    <div class="content">
+        <div class="filter-info">
+            <strong>Periode:</strong> {{ \Carbon\Carbon::createFromFormat('n', $bulan)->format('F') }} {{ $tahun }}
+            @if($mesin) | <strong>Mesin:</strong> {{ $mesin }} @endif
+            @if($line) | <strong>Line:</strong> {{ $line }} @endif
+        </div>
+        
+        <div class="info-box">
+            <strong>Catatan:</strong> Dashboard ini menampilkan monitoring komprehensif semua aktivitas laporan harian dan data mesin untuk periode yang dipilih.
+        </div>
+        
+        <!-- KPI Section -->
+        <div class="section-title">Key Performance Indicators (KPI)</div>
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-label">Availability</div>
+                <div class="kpi-value">{{ number_format($availability, 2) }}%</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Downtime</div>
+                <div class="kpi-value">{{ number_format($downtimePercent, 2) }}%</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Rata-rata MTTR</div>
+                <div class="kpi-value">{{ number_format($avgMTTR, 2) }}</div>
+                <div class="kpi-unit">menit</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Rata-rata MTBF</div>
+                <div class="kpi-value">{{ number_format($avgMTBFHours, 2) }}</div>
+                <div class="kpi-unit">jam</div>
+            </div>
+        </div>
+        
+        <!-- Machine Performance -->
+        <div class="section-title">Machine Performance Metrics</div>
+        <div class="performance-grid">
+            <div class="performance-card">
+                <div class="performance-card-label">Planned Time</div>
+                <div class="performance-card-value">{{ number_format(($totalPlannedTime ?? 0) / 60, 2) }}</div>
+                <div class="performance-card-unit">jam</div>
+            </div>
+            <div class="performance-card">
+                <div class="performance-card-label">Down Time</div>
+                <div class="performance-card-value">{{ number_format(($totalDowntimeMinutes ?? 0) / 60, 2) }}</div>
+                <div class="performance-card-unit">jam</div>
+            </div>
+            <div class="performance-card">
+                <div class="performance-card-label">Operation Time</div>
+                <div class="performance-card-value">{{ number_format((($totalPlannedTime ?? 0) - ($totalDowntimeMinutes ?? 0)) / 60, 2) }}</div>
+                <div class="performance-card-unit">jam</div>
+            </div>
+            <div class="performance-card">
+                <div class="performance-card-label">Breakdown</div>
+                <div class="performance-card-value">{{ $totalBreakdown ?? 0 }}</div>
+                <div class="performance-card-unit">kejadian</div>
+            </div>
+            <div class="performance-card">
+                <div class="performance-card-label">Corrective Maint.</div>
+                <div class="performance-card-value">{{ number_format($totalCorrectiveMaint ?? 0, 2) }}</div>
+                <div class="performance-card-unit">jam</div>
+            </div>
+            <div class="performance-card">
+                <div class="performance-card-label">Preventive Maint.</div>
+                <div class="performance-card-value">{{ number_format($totalPreventiveMaint ?? 0, 2) }}</div>
+                <div class="performance-card-unit">jam</div>
+            </div>
+        </div>
+        
+        <!-- Summary Cards -->
+        <div class="section-title">Summary</div>
+        <div class="performance-grid">
+            <div class="performance-card">
+                <div class="performance-card-label">Total Laporan</div>
+                <div class="performance-card-value">{{ $totalLaporan }}</div>
+            </div>
+            <div class="performance-card">
+                <div class="performance-card-label">Total Downtime</div>
+                <div class="performance-card-value">{{ number_format($totalDowntime) }}</div>
+                <div class="performance-card-unit">menit</div>
+            </div>
+            <div class="performance-card">
+                <div class="performance-card-label">Jam Downtime</div>
+                <div class="performance-card-value">{{ number_format($totalDowntime / 60, 2) }}</div>
+                <div class="performance-card-unit">jam</div>
+            </div>
+        </div>
+        
+        <!-- Top Machines Tables -->
+        <div class="section-title">Top 10 Mesin dengan Downtime Tertinggi</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Mesin</th>
+                    <th class="text-center">Downtime (Jam)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($topDowntimeMesin as $item)
+                    <tr>
+                        <td>{{ $item->mesin_name }}</td>
+                        <td class="text-center">{{ number_format($item->total_downtime / 60, 2) }}</td>
+                    </tr>
+                @empty
+                    <tr><td colspan="2" class="text-center">Tidak ada data</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+        
+        <!-- Breakdown Tables -->
+        <div class="two-column">
+            <div>
+                <div class="section-title">Top 7 Breakdown Per Line</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Line</th>
+                            <th class="text-center">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($topBreakdownLine as $item)
+                            <tr>
+                                <td>{{ $item->line }}</td>
+                                <td class="text-center"><span class="badge badge-danger">{{ $item->breakdown_count }}</span></td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="2" class="text-center">Tidak ada data</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            
+            <div>
+                <div class="section-title">Top 7 Breakdown - Jenis Kerusakan</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Kerusakan</th>
+                            <th class="text-center">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($topBreakdownCatatan as $item)
+                            <tr>
+                                <td>{{ $item->catatan ?? '-' }}</td>
+                                <td class="text-center"><span class="badge badge-danger">{{ $item->breakdown_count }}</span></td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="2" class="text-center">Tidak ada data</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- MTBF Section -->
+        <div class="section-title">MTBF (Mean Time Between Failures) Analysis</div>
+        
+        <div class="two-column">
+            <div>
+                <div style="font-size: 11px; margin-bottom: 10px;"><strong>Top 5 Most Reliable Machines</strong></div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mesin</th>
+                            <th class="text-center">MTBF (hrs)</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($topReliableMachines as $machine)
+                            @php
+                                $failureCount = $machine['failure_count'] ?? 0;
+                                $downtimeHours = $machine['total_downtime_hours'] ?? 0;
+                                
+                                if ($failureCount == 0 || ($failureCount == 1 && $downtimeHours < 1)) {
+                                    $badgeClass = 'badge-success';
+                                    $status = 'Excellent';
+                                } elseif ($failureCount <= 2 && $downtimeHours < 4) {
+                                    $badgeClass = 'badge-info';
+                                    $status = 'Good';
+                                } else {
+                                    $badgeClass = 'badge-warning';
+                                    $status = 'Fair';
+                                }
+                            @endphp
+                            <tr>
+                                <td>{{ $machine['machine_name'] }}</td>
+                                <td class="text-center">{{ number_format($machine['mtbf_hours'], 2) }}</td>
+                                <td class="text-center"><span class="badge {{ $badgeClass }}">{{ $status }}</span></td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="3" class="text-center">Tidak ada data</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            
+            <div>
+                <div style="font-size: 11px; margin-bottom: 10px;"><strong>Bottom 5 Worst Performing Machines</strong></div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mesin</th>
+                            <th class="text-center">MTBF (hrs)</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($worstMachines as $machine)
+                            @php
+                                $failureCount = $machine['failure_count'] ?? 0;
+                                $downtimeHours = $machine['total_downtime_hours'] ?? 0;
+                                
+                                if ($failureCount <= 2 && $downtimeHours < 4) {
+                                    $badgeClass = 'badge-info';
+                                    $status = 'Good';
+                                } elseif ($failureCount <= 5 && $downtimeHours < 12) {
+                                    $badgeClass = 'badge-warning';
+                                    $status = 'Fair';
+                                } else {
+                                    $badgeClass = 'badge-danger';
+                                    $status = 'Poor';
+                                }
+                            @endphp
+                            <tr>
+                                <td>{{ $machine['machine_name'] }}</td>
+                                <td class="text-center">{{ number_format($machine['mtbf_hours'], 2) }}</td>
+                                <td class="text-center"><span class="badge {{ $badgeClass }}">{{ $status }}</span></td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="3" class="text-center">Tidak ada data</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Spare Parts Monitoring -->
+        <div class="section-title">Spare Parts Monitoring</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Spare Part</th>
+                    <th class="text-center">Total Qty</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($spareParts as $item)
+                    <tr>
+                        <td>{{ $item->sparepart ?? '-' }}</td>
+                        <td class="text-center"><span class="badge badge-info">{{ $item->total_qty }}</span></td>
+                    </tr>
+                @empty
+                    <tr><td colspan="2" class="text-center">Tidak ada data</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+        
+        <!-- Footer -->
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee; font-size: 9px; color: #999; text-align: center;">
+            <p>Laporan ini dibuat secara otomatis oleh Sistem Pemeliharaan Mesin</p>
+            <p>Tanggal Cetak: {{ now()->format('d F Y H:i') }}</p>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
 :root {

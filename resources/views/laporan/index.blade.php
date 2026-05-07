@@ -1,254 +1,834 @@
 @extends('layouts.app')
 
-@section('title', 'Daftar Laporan - Sistem Laporan Maintenance')
+@section('title', 'Dashboard Laporan - Sistem Laporan Maintenance')
+
+@section('extra-css')
+<style>
+    .chart-container {
+        position: relative;
+        height: 400px;
+        margin-bottom: 30px;
+    }
+    
+    .filter-section {
+        background: linear-gradient(135deg, rgba(67, 97, 238, 0.05), rgba(107, 140, 255, 0.05));
+        padding: 25px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        border: 1px solid rgba(67, 97, 238, 0.2);
+    }
+    
+    .filter-section .form-label {
+        color: #333;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+    
+    .filter-section select, .filter-section input {
+        border-color: #d1d9e8;
+        border-radius: 0.625rem;
+        font-size: 0.95rem;
+    }
+    
+    .filter-section select:focus, .filter-section input:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.15);
+    }
+    
+    .filter-btn {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+        border: none;
+        color: white;
+        font-weight: 600;
+        border-radius: 0.625rem;
+        transition: all 0.3s ease;
+    }
+    
+    .filter-btn:hover {
+        background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+        color: white;
+    }
+
+    .filter-section .btn-danger {
+        background: linear-gradient(135deg, #dc3545, #e74c3c);
+        border: none;
+        color: white;
+        font-weight: 600;
+        border-radius: 0.625rem;
+        transition: all 0.3s ease;
+        padding: 0.625rem;
+        min-width: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .filter-section .btn-danger:hover {
+        background: linear-gradient(135deg, #c82333, #bd2130);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+        color: white;
+    }
+
+    .performance-card {
+        border: 1px solid #e8ecf1;
+        border-radius: 0.75rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .performance-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+    }
+
+    .performance-card:hover {
+        box-shadow: 0 8px 16px rgba(67, 97, 238, 0.15);
+        transform: translateY(-4px);
+        border-color: var(--primary-color);
+    }
+
+    .performance-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.75rem;
+    }
+
+    .performance-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        line-height: 1;
+    }
+
+    .performance-unit {
+        font-size: 0.75rem;
+        color: #999;
+        margin-top: 0.5rem;
+    }
+
+    .performance-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.75rem;
+        display: inline-block;
+        opacity: 0.9;
+        transition: all 0.3s ease;
+    }
+
+    .performance-card:hover .performance-icon {
+        transform: scale(1.15) translateY(-2px);
+        opacity: 1;
+    }
+
+    .performance-card:nth-child(2) .performance-icon {
+        color: #4361ee;
+    }
+
+    .performance-card:nth-child(3) .performance-icon {
+        color: #dc3545;
+    }
+
+    .performance-card:nth-child(4) .performance-icon {
+        color: #ffc107;
+    }
+
+    .performance-card:nth-child(5) .performance-icon {
+        color: #e83e8c;
+    }
+
+    .performance-card:nth-child(6) .performance-icon {
+        color: #17a2b8;
+    }
+
+    .performance-card:nth-child(7) .performance-icon {
+        color: #28a745;
+    }
+
+    .performance-card:nth-child(8) .performance-icon {
+        color: #6610f2;
+    }
+
+    .performance-card:nth-child(9) .performance-icon {
+        color: #fd7e14;
+    }
+</style>
+@endsection
 
 @section('content')
-<div class="card border-0 shadow-sm">
-    <div class="card-header bg-gradient d-flex justify-content-between align-items-center border-0" style="background: linear-gradient(135deg, #2c5f2d 0%, #1e3f1f 100%);">
-        <h4 class="mb-0 text-white">Daftar Laporan Anda</h4>
-        <div class="d-flex gap-2">
-            <a href="{{ route('laporan.import-form') }}" class="btn btn-light btn-sm fw-semibold">
-                <i class="bi bi-upload"></i> Import Excel
-            </a>
-            <a href="{{ route('laporan.create') }}" class="btn btn-light btn-sm fw-semibold">
-                <i class="bi bi-plus-circle"></i> Input Laporan Baru
-            </a>
-            <button type="button" class="btn btn-danger btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#clearAllModal" title="Hapus semua laporan">
-                <i class="bi bi-trash"></i> Clear All
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Dashboard Laporan - Monitoring Aktivitas Laporan Harian</h2>
+    <div class="d-flex gap-2">
+        <a href="{{ route('laporan.import-form') }}" class="btn btn-sm btn-info">
+            <i class="bi bi-upload"></i> Import Excel
+        </a>
+        <a href="{{ route('laporan.create') }}" class="btn btn-sm btn-success">
+            <i class="bi bi-plus-circle"></i> Input Laporan Baru
+        </a>
+    </div>
+</div>
+
+<!-- Filter Section -->
+<div class="filter-section">
+    <form method="GET" action="{{ route('laporan.index') }}" class="row g-3">
+        <div class="col-md-2">
+            <label for="bulan" class="form-label">Bulan</label>
+            <select name="bulan" id="bulan" class="form-select">
+                @php
+                    $bulanList = [
+                        1 => 'January',
+                        2 => 'February',
+                        3 => 'March',
+                        4 => 'April',
+                        5 => 'May',
+                        6 => 'June',
+                        7 => 'July',
+                        8 => 'August',
+                        9 => 'September',
+                        10 => 'October',
+                        11 => 'November',
+                        12 => 'December'
+                    ];
+                @endphp
+                @foreach($bulanList as $m => $bulanName)
+                    <option value="{{ $m }}" @if($bulan == $m) selected @endif>
+                        {{ $bulanName }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+        
+        <div class="col-md-2">
+            <label for="tahun" class="form-label">Tahun</label>
+            <select name="tahun" id="tahun" class="form-select">
+                @for($y = 2024; $y <= 2026; $y++)
+                    <option value="{{ $y }}" @if($tahun == $y) selected @endif>{{ $y }}</option>
+                @endfor
+            </select>
+        </div>
+        
+        <div class="col-md-2">
+            <label for="mesin" class="form-label">Mesin</label>
+            <select name="mesin" id="mesin" class="form-select">
+                <option value="">-- Semua Mesin --</option>
+                @foreach($allMesins as $m)
+                    <option value="{{ $m }}" @if($mesin == $m) selected @endif>{{ $m }}</option>
+                @endforeach
+            </select>
+        </div>
+        
+        <div class="col-md-2">
+            <label for="line" class="form-label">Line</label>
+            <select name="line" id="line" class="form-select">
+                <option value="">-- Semua Line --</option>
+                @foreach($allLines as $l)
+                    <option value="{{ $l }}" @if($line == $l) selected @endif>{{ $l }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <div class="form-check form-switch mt-4">
+                <input class="form-check-input" type="checkbox" name="all_time" id="all_time" value="1" @if(request('all_time') == '1') checked @endif>
+                <label class="form-check-label" for="all_time" style="font-size: 0.9rem;">
+                    Semua Data
+                </label>
+            </div>
+        </div>
+        
+        <div class="col-md-2 d-flex align-items-end gap-2">
+            <button type="submit" class="btn filter-btn w-100">
+                <i class="bi bi-funnel"></i> Filter Data
             </button>
         </div>
+    </form>
+</div>
+
+<!-- Alert Box -->
+<div class="alert alert-info mb-4" role="alert">
+    <i class="bi bi-info-circle"></i> 
+    <strong>Dashboard Laporan</strong> - Monitoring komprehensif semua aktivitas laporan harian Anda.
+</div>
+
+<!-- KPI Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-label">Availability</div>
+            <div class="kpi-value">{{ number_format($availability, 2) }}%</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-label">Downtime</div>
+            <div class="kpi-value">{{ number_format($downtimePercent, 2) }}%</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-label">Rata-rata MTTR</div>
+            <div class="kpi-value">{{ number_format($avgMTTR, 2) }}</div>
+            <div class="kpi-label">menit</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-label">Rata-rata MTBF</div>
+            <div class="kpi-value">{{ number_format($avgMTBFHours, 2) }}</div>
+            <div class="kpi-label">jam</div>
+        </div>
+    </div>
+</div>
+
+<!-- Machine Performance KPI Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h5 class="mb-3">
+            <i class="bi bi-speedometer2" style="color: var(--primary-color);"></i> 
+            <span style="color: var(--text-dark); font-weight: 600;">Machine Performance</span>
+        </h5>
+    </div>
+    <div class="col-md-3">
+        <div class="card performance-card">
+            <div class="card-body text-center">
+                <div class="performance-icon"><i class="bi bi-calendar-check"></i></div>
+                <div class="performance-label">Planned Time</div>
+                <div class="performance-value">{{ number_format(($totalPlannedTime ?? 0) / 60, 2) }}</div>
+                <div class="performance-unit">jam</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card performance-card">
+            <div class="card-body text-center">
+                <div class="performance-icon"><i class="bi bi-exclamation-circle"></i></div>
+                <div class="performance-label">Down Time</div>
+                <div class="performance-value">{{ number_format(($totalDowntimeMinutes ?? 0) / 60, 2) }}</div>
+                <div class="performance-unit">jam</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card performance-card">
+            <div class="card-body text-center">
+                <div class="performance-icon"><i class="bi bi-play-circle"></i></div>
+                <div class="performance-label">Operation Time</div>
+                <div class="performance-value">{{ number_format((($totalPlannedTime ?? 0) - ($totalDowntimeMinutes ?? 0)) / 60, 2) }}</div>
+                <div class="performance-unit">jam</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card performance-card">
+            <div class="card-body text-center">
+                <div class="performance-icon"><i class="bi bi-bug"></i></div>
+                <div class="performance-label">Breakdown</div>
+                <div class="performance-value">{{ $totalBreakdown ?? 0 }}</div>
+                <div class="performance-unit">kejadian</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- More Performance Metrics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card performance-card">
+            <div class="card-body text-center">
+                <div class="performance-icon"><i class="bi bi-wrench"></i></div>
+                <div class="performance-label">Corrective Maintenance</div>
+                <div class="performance-value">{{ number_format($totalCorrectiveMaint ?? 0, 2) }}</div>
+                <div class="performance-unit">jam</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card performance-card">
+            <div class="card-body text-center">
+                <div class="performance-icon"><i class="bi bi-shield-check"></i></div>
+                <div class="performance-label">Preventive Maintenance</div>
+                <div class="performance-value">{{ number_format($totalPreventiveMaint ?? 0, 2) }}</div>
+                <div class="performance-unit">jam</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card performance-card">
+            <div class="card-body text-center">
+                <div class="performance-icon"><i class="bi bi-arrow-repeat"></i></div>
+                <div class="performance-label">Change Over Product</div>
+                <div class="performance-value">{{ number_format($totalChangeOver ?? 0, 2) }}</div>
+                <div class="performance-unit">jam</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Total Laporan</h5>
+                <h2 style="color: var(--primary-color);">{{ $totalLaporan }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Total Downtime</h5>
+                <h2 style="color: var(--secondary-color);">{{ number_format($totalDowntime) }} menit</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Jam Downtime</h5>
+                <h2 style="color: var(--warning-color);">{{ number_format($totalDowntime / 60, 2) }} jam</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MTBF Metrics Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h5 class="mb-3">
+            <i class="bi bi-speedometer2" style="color: var(--primary-color);"></i> 
+            <span style="color: var(--text-dark); font-weight: 600;">MTBF (Mean Time Between Failures) Analysis</span>
+        </h5>
     </div>
     
-    <!-- Search & Filter Section -->
-    <div class="card-body pb-3">
-        <form method="GET" action="{{ route('laporan.index') }}" class="row g-3">
-            <div class="col-md-3">
-                <input type="text" name="search" class="form-control" placeholder="Cari mesin, line, atau catatan..." value="{{ $search }}" />
+    <!-- MTBF Statistics -->
+    <div class="col-md-4">
+        <div class="card performance-card">
+            <div class="card-body text-center">
+                <div class="performance-icon"><i class="bi bi-graph-up"></i></div>
+                <div class="performance-label">Average MTBF</div>
+                <div class="performance-value">{{ number_format($avgMTBFHours, 2) }}</div>
+                <div class="performance-unit">jam</div>
             </div>
-            <div class="col-md-2">
-                <input type="text" name="mesin" class="form-control" placeholder="Filter mesin" value="{{ $mesin_filter }}" />
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card performance-card">
+            <div class="card-body text-center">
+                <div class="performance-icon"><i class="bi bi-check-circle"></i></div>
+                <div class="performance-label">Machines with Data</div>
+                <div class="performance-value">{{ count($mtbfData) }}</div>
+                <div class="performance-unit">mesin</div>
             </div>
-            <div class="col-md-2">
-                <input type="text" name="line" class="form-control" placeholder="Filter line" value="{{ $line_filter }}" />
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card performance-card">
+            <div class="card-body text-center">
+                <div class="performance-icon"><i class="bi bi-table"></i></div>
+                <div class="performance-label">View Details</div>
+                <a href="{{ route('laporan.index') }}" class="btn btn-sm btn-primary mt-2">
+                    Refresh
+                </a>
             </div>
-            <div class="col-md-2">
-                <select name="jenis_pekerjaan" class="form-select">
-                    <option value="">-- Jenis Pekerjaan --</option>
-                    <option value="corrective" {{ $jenis_filter === 'corrective' ? 'selected' : '' }}>Corrective</option>
-                    <option value="preventive" {{ $jenis_filter === 'preventive' ? 'selected' : '' }}>Preventive</option>
-                    <option value="modifikasi" {{ $jenis_filter === 'modifikasi' ? 'selected' : '' }}>Modifikasi</option>
-                    <option value="utility" {{ $jenis_filter === 'utility' ? 'selected' : '' }}>Utility</option>
-                </select>
+        </div>
+    </div>
+</div>
+
+<!-- Top Reliable & Worst Machines -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <i class="bi bi-trophy"></i> Top 5 Most Reliable Machines
             </div>
-            <div class="col-md-2">
-                <select name="tipe_laporan" class="form-select">
-                    <option value="">-- Tipe Laporan --</option>
-                    <option value="harian" {{ $tipe_filter === 'harian' ? 'selected' : '' }}>Harian</option>
-                    <option value="mingguan" {{ $tipe_filter === 'mingguan' ? 'selected' : '' }}>Mingguan</option>
-                    <option value="bulanan" {{ $tipe_filter === 'bulanan' ? 'selected' : '' }}>Bulanan</option>
-                </select>
-            </div>
-            <div class="col-md-12 border-top pt-3">
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label">Dari Tanggal</label>
-                        <input type="date" name="start_date" class="form-control" value="{{ $start_date }}" />
+            <div class="card-body">
+                @if(count($topReliableMachines) > 0)
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Mesin</th>
+                                    <th class="text-center">MTBF (hrs)</th>
+                                    <th class="text-center">Failures</th>
+                                    <th class="text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($topReliableMachines as $machine)
+                                    @php
+                                        $failureCount = $machine['failure_count'] ?? 0;
+                                        $mtbfHours = $machine['mtbf_hours'] ?? 0;
+                                        $downtimeHours = $machine['total_downtime_hours'] ?? 0;
+                                        
+                                        if ($failureCount == 0) {
+                                            $badgeClass = 'bg-success';
+                                            $status = 'Excellent';
+                                        } elseif ($failureCount == 1 && $downtimeHours < 1) {
+                                            $badgeClass = 'bg-success';
+                                            $status = 'Excellent';
+                                        } elseif ($failureCount <= 2 && $downtimeHours < 4) {
+                                            $badgeClass = 'bg-info';
+                                            $status = 'Good';
+                                        } else {
+                                            $badgeClass = 'bg-warning';
+                                            $status = 'Fair';
+                                        }
+                                    @endphp
+                                    <tr>
+                                        <td>
+                                            <strong>{{ $machine['machine_name'] }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ $machine['line_name'] ?? 'Line Tidak Diketahui' }}</small>
+                                        </td>
+                                        <td class="text-center">
+                                            <strong>{{ number_format($machine['mtbf_hours'], 2) }}</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-danger">{{ $machine['failure_count'] }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge {{ $badgeClass }}">{{ $status }}</span>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Sampai Tanggal</label>
-                        <input type="date" name="end_date" class="form-control" value="{{ $end_date }}" />
+                @else
+                    <div class="alert alert-info">Tidak ada data MTBF untuk mesin</div>
+                @endif
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <i class="bi bi-exclamation-triangle"></i> Bottom 5 Worst Performing Machines
+            </div>
+            <div class="card-body">
+                @if(count($worstMachines) > 0)
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Mesin</th>
+                                    <th class="text-center">MTBF (hrs)</th>
+                                    <th class="text-center">Failures</th>
+                                    <th class="text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($worstMachines as $machine)
+                                    @php
+                                        $failureCount = $machine['failure_count'] ?? 0;
+                                        $mtbfHours = $machine['mtbf_hours'] ?? 0;
+                                        $downtimeHours = $machine['total_downtime_hours'] ?? 0;
+                                        
+                                        if ($failureCount <= 2 && $downtimeHours < 4) {
+                                            $badgeClass = 'bg-info';
+                                            $status = 'Good';
+                                        } elseif ($failureCount <= 5 && $downtimeHours < 12) {
+                                            $badgeClass = 'bg-warning';
+                                            $status = 'Fair';
+                                        } else {
+                                            $badgeClass = 'bg-danger';
+                                            $status = 'Poor';
+                                        }
+                                    @endphp
+                                    <tr>
+                                        <td>
+                                            <strong>{{ $machine['machine_name'] }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ $machine['line_name'] ?? 'Line Tidak Diketahui' }}</small>
+                                        </td>
+                                        <td class="text-center">
+                                            <strong>{{ number_format($machine['mtbf_hours'], 2) }}</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-danger">{{ $machine['failure_count'] }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge {{ $badgeClass }}">{{ $status }}</span>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="col-md-6 d-flex align-items-end gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-search"></i> Cari
-                        </button>
-                        <a href="{{ route('laporan.index') }}" class="btn btn-secondary">
-                            <i class="bi bi-arrow-counterclockwise"></i> Reset
-                        </a>
-                    </div>
+                @else
+                    <div class="alert alert-info">Tidak ada data MTBF untuk mesin</div>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top 10 & Top 7 Tables Row 1 -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Top 10 Mesin dengan Downtime Tertinggi</div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Mesin</th>
+                                <th>Down Time (Jam)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($topDowntimeMesin as $item)
+                                <tr>
+                                    <td>{{ $item->mesin_name }}</td>
+                                    <td>{{ number_format($item->total_downtime / 60, 2) }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted">Tidak ada data</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        </form>
+        </div>
     </div>
-    
-    <!-- Result Info -->
-    @if(request()->hasAny(['search', 'mesin', 'line', 'jenis_pekerjaan', 'tipe_laporan', 'start_date', 'end_date']))
-        <div class="card-body pb-2 pt-0">
-            <small class="text-muted">
-                <i class="bi bi-info-circle"></i>
-                Menampilkan {{ $laporan->total() }} hasil dari pencarian
-            </small>
-        </div>
-    @endif
-    
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-dark">
-                    <tr>
-                        <th style="width: 60px;" class="text-center">No</th>
-                        <th style="width: 120px;">Tanggal</th>
-                        <th>Mesin</th>
-                        <th style="width: 130px;">Line</th>
-                        <th style="width: 150px;">Tipe Laporan</th>
-                        <th style="width: 120px;">Jenis Pekerjaan</th>
-                        <th style="width: 120px;" class="text-center">Downtime</th>
-                        <th style="width: 230px;" class="text-center">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($laporan as $item)
-                        <tr class="align-middle">
-                            <td class="text-center fw-semibold text-muted">{{ ($laporan->currentPage() - 1) * $laporan->perPage() + $loop->iteration }}</td>
-                            <td><span class="fw-semibold">{{ $item->tanggal_laporan->format('d-m-Y') }}</span></td>
-                            <td>
-                                <div class="fw-semibold">{{ $item->mesin_name }}</div>
-                                <small class="text-muted">Mesin</small>
-                            </td>
-                            <td>
-                                @if($item->line)
-                                    <span class="badge" style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: white;">{{ $item->line }}</span>
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </td>
-                            <td>
-                                @php
-                                    $tipeLaporanColor = match($item->tipe_laporan) {
-                                        'harian' => '#3498db',      // Blue
-                                        'mingguan' => '#9b59b6',    // Purple
-                                        'bulanan' => '#e74c3c',     // Red
-                                        default => '#95a5a6'        // Gray
-                                    };
-                                @endphp
-                                <span class="badge text-white" style="background-color: {{ $tipeLaporanColor }};">{{ ucfirst($item->tipe_laporan) }}</span>
-                            </td>
-                            <td>
-                                @php
-                                    $jenisPekerjaanStyle = match($item->jenis_pekerjaan) {
-                                        'corrective' => 'background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);',      // Red
-                                        'preventive' => 'background: linear-gradient(135deg, #f39c12 0%, #d68910 100%);',     // Orange
-                                        'modifikasi' => 'background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);',     // Blue
-                                        'utility' => 'background: linear-gradient(135deg, #16a085 0%, #138d75 100%);',        // Teal
-                                        default => 'background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);'           // Gray
-                                    };
-                                @endphp
-                                <span class="badge text-white" style="{{ $jenisPekerjaanStyle }}">{{ ucfirst($item->jenis_pekerjaan) }}</span>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge bg-secondary">{{ $item->downtime_min }} min</span>
-                            </td>
-                            <td class="text-center">
-                                <a href="{{ route('laporan.show', $item->id) }}" class="btn btn-sm btn-outline-info" title="Lihat detail laporan">
-                                    <i class="bi bi-eye"></i> Lihat
-                                </a>
-                                <a href="{{ route('laporan.edit', $item->id) }}" class="btn btn-sm btn-outline-warning" title="Edit laporan">
-                                    <i class="bi bi-pencil"></i> Edit
-                                </a>
-                                <form action="{{ route('laporan.destroy', $item->id) }}" method="POST" style="display:inline;" class="d-inline-block">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Hapus laporan" onclick="return confirm('Yakin ingin menghapus laporan ini?')">
-                                        <i class="bi bi-trash"></i> Hapus
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="text-center text-muted py-5">
-                                <i class="bi bi-inbox" style="font-size: 2rem;"></i>
-                                <p class="mt-2">Belum ada laporan</p>
-                                <a href="{{ route('laporan.create') }}" class="btn btn-sm btn-success">Buat Laporan Pertama</a>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
 
-        @if($laporan->hasPages())
-            <nav aria-label="Page navigation" class="mt-4">
-                <ul class="pagination pagination-sm justify-content-center mb-0">
-                    {{-- Previous Page Link --}}
-                    @if ($laporan->onFirstPage())
-                        <li class="page-item disabled"><span class="page-link">&lsaquo; Previous</span></li>
-                    @else
-                        <li class="page-item"><a class="page-link" href="{{ $laporan->previousPageUrl() }}">&lsaquo; Previous</a></li>
-                    @endif
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Top 7 Breakdown Per Line</div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Line</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($topBreakdownLine as $item)
+                                <tr>
+                                    <td>{{ $item->line }}</td>
+                                    <td>
+                                        <span class="badge bg-danger">{{ $item->breakdown_count }}</span>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted">Tidak ada data</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-                    {{-- Pagination Elements with intelligent range --}}
-                    @php
-                        $currentPage = $laporan->currentPage();
-                        $lastPage = $laporan->lastPage();
-                        $start = max(1, $currentPage - 2);
-                        $end = min($lastPage, $start + 4);
-                        if ($end - $start < 4) {
-                            $start = max(1, $end - 4);
+<!-- Top 7 Breakdown Catatan -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Top 7 Breakdown - Jenis Kerusakan</div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Kerusakan</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($topBreakdownCatatan as $item)
+                                <tr>
+                                    <td>{{ $item->catatan ?? '-' }}</td>
+                                    <td>
+                                        <span class="badge bg-danger">{{ $item->breakdown_count }}</span>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted">Tidak ada data</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monitoring Spare Part -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Monitoring Spare Part ({{ \Carbon\Carbon::createFromFormat('n', $bulan)->format('F') }} {{ $tahun }})</div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Spare Part</th>
+                                <th>Total Qty</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($spareParts as $item)
+                                <tr>
+                                    <td>{{ $item->sparepart ?? '-' }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ $item->total_qty }}</span>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted">Tidak ada data</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Top 10 Mesin dengan Downtime Tertinggi (Chart)</div>
+            <div class="card-body">
+                @if(count($topDowntimeMesin) > 0)
+                <div class="chart-container">
+                    <canvas id="topDowntimeChart"></canvas>
+                </div>
+                @else
+                <p class="text-center text-muted">Tidak ada data downtime mesin</p>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Machine Performance</div>
+            <div class="card-body">
+                @if(count($machinePerformance) > 0)
+                <div class="chart-container">
+                    <canvas id="machinePerformanceChart"></canvas>
+                </div>
+                @else
+                <p class="text-center text-muted">Tidak ada data mesin</p>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+
+@endsection
+
+@section('extra-js')
+<script>
+    function initCharts() {
+        const topDowntimeMesinDataRaw = {!! json_encode($topDowntimeMesin->pluck('total_downtime')->toArray()) !!};
+        const topDowntimeMesinData = topDowntimeMesinDataRaw.map(x => (x / 60).toFixed(2));
+        const topDowntimeMesinLabels = {!! json_encode($topDowntimeMesin->pluck('mesin_name')->toArray()) !!};
+        
+        const machinePerformanceData = {!! json_encode($machinePerformance->pluck('count')->toArray()) !!};
+        const machinePerformanceLabels = {!! json_encode($machinePerformance->pluck('mesin_name')->toArray()) !!};
+
+        if (topDowntimeMesinData.length > 0) {
+            const topDowntimeCtx = document.getElementById('topDowntimeChart');
+            if (topDowntimeCtx) {
+                new Chart(topDowntimeCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: topDowntimeMesinLabels,
+                        datasets: [{
+                            label: 'Downtime (Jam)',
+                            data: topDowntimeMesinData,
+                            backgroundColor: 'rgba(67, 97, 238, 0.8)',
+                            borderColor: '#4361ee',
+                            borderWidth: 2,
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: { beginAtZero: true }
                         }
-                    @endphp
+                    }
+                });
+            }
+        }
 
-                    @if ($start > 1)
-                        <li class="page-item"><a class="page-link" href="{{ $laporan->url(1) }}">1</a></li>
-                        @if ($start > 2)
-                            <li class="page-item disabled"><span class="page-link">...</span></li>
-                        @endif
-                    @endif
+        if (machinePerformanceData.length > 0) {
+            const machinePerformanceCtx = document.getElementById('machinePerformanceChart');
+            if (machinePerformanceCtx) {
+                new Chart(machinePerformanceCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: machinePerformanceLabels,
+                        datasets: [{
+                            data: machinePerformanceData,
+                            backgroundColor: [
+                                'rgba(67, 97, 238, 0.9)',
+                                'rgba(107, 140, 255, 0.9)',
+                                'rgba(52, 211, 153, 0.9)',
+                                'rgba(244, 63, 94, 0.9)',
+                                'rgba(255, 159, 28, 0.9)',
+                                'rgba(99, 102, 241, 0.9)',
+                                'rgba(139, 92, 246, 0.9)',
+                                'rgba(6, 182, 212, 0.9)',
+                                'rgba(34, 197, 94, 0.9)',
+                                'rgba(59, 130, 246, 0.9)'
+                            ],
+                            borderWidth: 2,
+                            borderColor: 'rgba(255, 255, 255, 0.8)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+            }
+        }
+    }
 
-                    @foreach ($laporan->getUrlRange($start, $end) as $page => $url)
-                        @if ($page == $laporan->currentPage())
-                            <li class="page-item active"><span class="page-link">{{ $page }}</span></li>
-                        @else
-                            <li class="page-item"><a class="page-link" href="{{ $url }}">{{ $page }}</a></li>
-                        @endif
-                    @endforeach
+    function waitForChart() {
+        if (typeof Chart !== 'undefined') {
+            initCharts();
+        } else {
+            setTimeout(waitForChart, 100);
+        }
+    }
 
-                    @if ($end < $lastPage)
-                        @if ($end < $lastPage - 1)
-                            <li class="page-item disabled"><span class="page-link">...</span></li>
-                        @endif
-                        <li class="page-item"><a class="page-link" href="{{ $laporan->url($lastPage) }}">{{ $lastPage }}</a></li>
-                    @endif
-
-                    {{-- Next Page Link --}}
-                    @if ($laporan->hasMorePages())
-                        <li class="page-item"><a class="page-link" href="{{ $laporan->nextPageUrl() }}">Next &rsaquo;</a></li>
-                    @else
-                        <li class="page-item disabled"><span class="page-link">Next &rsaquo;</span></li>
-                    @endif
-                </ul>
-            </nav>
-            <div class="text-center mt-2 text-muted small">
-                Halaman {{ $laporan->currentPage() }} dari {{ $laporan->lastPage() }} | Total: {{ $laporan->total() }} laporan
-            </div>
-        @endif
-    </div>
-</div>
-
-<!-- Clear All Confirmation Modal -->
-<div class="modal fade" id="clearAllModal" tabindex="-1" aria-labelledby="clearAllModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="clearAllModalLabel"><i class="bi bi-exclamation-triangle"></i> Hapus Semua Laporan</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p class="mb-3"><strong>⚠️ Peringatan!</strong></p>
-                <p>Anda akan menghapus <strong>semua laporan</strong>. Aksi ini <strong>tidak dapat dibatalkan</strong>!</p>
-                <p class="text-muted small mb-0">{{ Auth::user()->hasRole('admin') ? 'Sebagai admin, semua laporan di sistem akan dihapus.' : 'Hanya laporan Anda yang akan dihapus.' }}</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                <form action="{{ route('laporan.clear-all') }}" method="POST" style="display: inline;">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn btn-danger fw-semibold">
-                        <i class="bi bi-trash"></i> Ya, Hapus Semua
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+    waitForChart();
+</script>
 @endsection
