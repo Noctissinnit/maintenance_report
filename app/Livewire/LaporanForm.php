@@ -14,6 +14,7 @@ class LaporanForm extends Component
 {
     public $machine_id = '';
     public $line_id = '';
+    public $line_status = 'on';
     public $catatan = '';
     public $spare_part_id = '';
     public $qty_sparepart = 0;
@@ -33,6 +34,7 @@ class LaporanForm extends Component
     protected $rules = [
         'machine_id' => 'integer|exists:machines,id',
         'line_id' => 'required|integer|exists:lines,id',
+        'line_status' => 'required|in:on,off',
         'catatan' => 'nullable|string',
         'spare_part_id' => 'nullable|integer|exists:spare_parts,id',
         'qty_sparepart' => 'integer|min:0',

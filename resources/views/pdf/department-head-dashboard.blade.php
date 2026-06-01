@@ -12,14 +12,14 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            color: #333;
+            color: #1f2937;
             font-size: 10px;
-            line-height: 1.3;
+            line-height: 1.4;
         }
 
         /* Header */
         .header {
-            background: linear-gradient(135deg, #4361ee 0%, #6b8cff 100%);
+            background: linear-gradient(135deg, #3266ad 0%, #4a7fc1 100%);
             color: white;
             padding: 18px 20px;
             text-align: center;
@@ -40,9 +40,9 @@
 
         /* Alert */
         .alert {
-            background: #e3f2fd;
+            background: #e0f2fe;
             border-left: 4px solid #0284c7;
-            color: #1e40af;
+            color: #0c4a6e;
             padding: 9px 12px;
             margin-bottom: 10px;
             font-size: 9px;
@@ -51,7 +51,7 @@
 
         /* Section Title */
         .section-title {
-            background: #4361ee;
+            background: #3266ad;
             color: white;
             padding: 8px 12px;
             margin: 12px 0 8px 0;
@@ -101,7 +101,7 @@
 
         /* KPI Card */
         .kpi-card {
-            background: linear-gradient(135deg, #4361ee, #6b8cff);
+            background: linear-gradient(135deg, #3266ad, #4a7fc1);
             color: white;
             padding: 18px 12px;
             border-radius: 4px;
@@ -110,13 +110,25 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
+            position: relative;
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px 4px 0 0;
         }
 
         .kpi-card .label {
             font-size: 8px;
             text-transform: uppercase;
             font-weight: 700;
-            opacity: 0.9;
+            opacity: 0.95;
             margin-bottom: 6px;
             letter-spacing: 0.5px;
         }
@@ -127,11 +139,32 @@
             line-height: 1.1;
         }
 
+        /* Color variants for KPI Cards */
+        .kpi-card.red {
+            background: linear-gradient(135deg, #A32D2D, #b84343);
+        }
+
+        .kpi-card.amber {
+            background: linear-gradient(135deg, #BA7517, #cc8a2f);
+        }
+
+        .kpi-card.green {
+            background: linear-gradient(135deg, #3B6D11, #4d8a1a);
+        }
+
+        .kpi-card.teal {
+            background: linear-gradient(135deg, #0F6E56, #2a8b73);
+        }
+
+        .kpi-card.purple {
+            background: linear-gradient(135deg, #534AB7, #6d5fd1);
+        }
+
         /* Performance Card */
         .perf-card {
             background: white;
             border: 1px solid #e5e7eb;
-            border-top: 3px solid #4361ee;
+            border-top: 3px solid #3266ad;
             padding: 14px 10px;
             border-radius: 3px;
             text-align: center;
@@ -140,6 +173,12 @@
             flex-direction: column;
             justify-content: center;
         }
+
+        .perf-card.red { border-top-color: #A32D2D; }
+        .perf-card.amber { border-top-color: #BA7517; }
+        .perf-card.green { border-top-color: #3B6D11; }
+        .perf-card.teal { border-top-color: #0F6E56; }
+        .perf-card.purple { border-top-color: #534AB7; }
 
         .perf-card .label {
             font-size: 8px;
@@ -153,7 +192,7 @@
         .perf-card .value {
             font-size: 20px;
             font-weight: 700;
-            color: #4361ee;
+            color: #3266ad;
             line-height: 1.1;
             margin-bottom: 2px;
         }
@@ -163,9 +202,15 @@
             color: #888;
         }
 
+        .perf-card.red .value { color: #A32D2D; }
+        .perf-card.amber .value { color: #BA7517; }
+        .perf-card.green .value { color: #3B6D11; }
+        .perf-card.teal .value { color: #0F6E56; }
+        .perf-card.purple .value { color: #534AB7; }
+
         /* Summary Box */
         .summary-box {
-            background: linear-gradient(135deg, #4361ee, #6b8cff);
+            background: linear-gradient(135deg, #3266ad, #4a7fc1);
             color: white;
             padding: 16px 12px;
             border-radius: 4px;
@@ -175,6 +220,9 @@
             flex-direction: column;
             justify-content: center;
         }
+
+        .summary-box.red { background: linear-gradient(135deg, #A32D2D, #b84343); }
+        .summary-box.amber { background: linear-gradient(135deg, #BA7517, #cc8a2f); }
 
         .summary-box .title {
             font-size: 9px;
@@ -205,7 +253,7 @@
         }
 
         .card-header {
-            background: #4361ee;
+            background: #3266ad;
             color: white;
             padding: 8px 12px;
             font-weight: 700;
@@ -213,11 +261,15 @@
         }
 
         .card-header.success {
-            background: #28a745;
+            background: #3B6D11;
         }
 
         .card-header.danger {
-            background: #dc3545;
+            background: #A32D2D;
+        }
+
+        .card-header.warning {
+            background: #BA7517;
         }
 
         .card-body {
@@ -233,7 +285,7 @@
         }
 
         table th {
-            background: #4361ee;
+            background: #3266ad;
             color: white;
             padding: 4px 6px;
             border: none;
@@ -248,7 +300,7 @@
         }
 
         table tr:last-child td {
-            border-bottom: 1px solid #4361ee;
+            border-bottom: 1px solid #3266ad;
         }
 
         table tr:nth-child(even) {
@@ -272,21 +324,24 @@
         }
 
         .badge-danger {
-            background: #dc3545;
+            background: #A32D2D;
         }
 
         .badge-success {
-            background: #28a745;
+            background: #3B6D11;
         }
 
         .badge-info {
-            background: #17a2b8;
+            background: #0F6E56;
         }
 
         .badge-warning {
-            background: #ffc107;
-            color: #333;
+            background: #BA7517;
+            color: #fff;
         }
+
+        .badge-red { background: #A32D2D; }
+        .badge-blue { background: #3266ad; }
 
         /* Utilities */
         .small {
@@ -317,9 +372,9 @@
 
         /* Machine Info */
         .machine-info {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            color: #856404;
+            background: linear-gradient(to right, #e0ecff, #eff3ff);
+            border-left: 4px solid #3266ad;
+            color: #1e3a8a;
             padding: 10px 12px;
             margin-bottom: 3px;
             font-size: 9px;
@@ -330,6 +385,19 @@
             display: block;
             margin-bottom: 3px;
             font-size: 10px;
+            color: #3266ad;
+        }
+
+        /* Info Banner */
+        .info-banner {
+            background: linear-gradient(to right, #e0ecff, #eff3ff);
+            border-left: 4px solid #3266ad;
+            padding: 8px 12px;
+            margin-bottom: 3px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            color: #1e3a8a;
         }
     </style>
 </head>
@@ -738,6 +806,7 @@
                             <thead>
                                 <tr>
                                     <th>Line</th>
+                                    <th class="text-center">Downtime</th>
                                     <th class="text-center">Total</th>
                                 </tr>
                             </thead>
@@ -745,11 +814,12 @@
                                 @forelse($topBreakdownLine as $item)
                                     <tr>
                                         <td>{{ $item->line ?? '-' }}</td>
+                                        <td class="text-center"><span class="badge badge-warning">{{ number_format(($item->total_downtime_min ?? 0) / 60, 2) }} jam</span></td>
                                         <td class="text-center"><span class="badge badge-danger">{{ $item->breakdown_count ?? 0 }}</span></td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="2" class="no-data">Tidak ada data</td>
+                                        <td colspan="3" class="no-data">Tidak ada data</td>
                                     </tr>
                                 @endforelse
                             </tbody>

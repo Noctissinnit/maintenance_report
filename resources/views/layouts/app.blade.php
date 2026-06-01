@@ -776,6 +776,9 @@
                 <a href="{{ route('machines.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'machines.index') active @endif">
                     <i class="bi bi-gear"></i> Mesin
                 </a>
+                <a href="{{ route('planned-times.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'planned-times.index' || Route::current()->getName() === 'planned-times.create') active @endif">
+                    <i class="bi bi-calendar-event"></i> Planned Time
+                </a>
             @endif
 
             {{-- Inventory Menu untuk Admin saja --}}

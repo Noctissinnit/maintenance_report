@@ -1,0 +1,141 @@
+@extends('layouts.app')
+
+@section('title', 'Add Planned Time - Sistem Laporan Maintenance')
+
+@section('content')
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="bi bi-plus-circle"></i> Add New Planned Time</h2>
+            <p class="text-muted">Set production planned time for a specific month</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ route('planned-times.index') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <!-- Error Messages -->
+    @if ($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Validation Error:</strong>
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <!-- Form Card -->
+    <div class="card">
+        <div class="card-body p-4">
+            <form method="POST" action="{{ route('planned-times.store') }}" class="row g-3">
+                @csrf
+
+                <!-- Year -->
+                <div class="col-md-6">
+                    <label for="year" class="form-label">Year <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control @error('year') is-invalid @enderror" 
+                           id="year" name="year" min="2024" max="2099" value="{{ old('year', now()->year) }}" required>
+                    @error('year')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <!-- Month -->
+                <div class="col-md-6">
+                    <label for="month" class="form-label">Month <span class="text-danger">*</span></label>
+                    <select class="form-select @error('month') is-invalid @enderror" id="month" name="month" required>
+                        <option value="">-- Select Month --</option>
+                        @foreach($months as $number => $name)
+                            <option value="{{ $number }}" @if(old('month', now()->month) == $number) selected @endif>
+                                {{ $name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('month')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <!-- Planned Time in Minutes -->
+                <div class="col-md-6">
+                    <label for="planned_time_minutes" class="form-label">Planned Time (Minutes) <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="number" class="form-control @error('planned_time_minutes') is-invalid @enderror" 
+                               id="planned_time_minutes" name="planned_time_minutes" min="0" value="{{ old('planned_time_minutes') }}" 
+                               placeholder="e.g., 1800000" required @change="updateHours()">
+                        <span class="input-group-text">min</span>
+                    </div>
+                    @error('planned_time_minutes')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                    <small class="text-muted">
+                        Total planned production time in minutes. Use calculator: Days × 24 × 60 × Active Machines
+                    </small>
+                </div>
+
+                <!-- Calculated Hours -->
+                <div class="col-md-6">
+                    <label class="form-label">Calculated Hours</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control bg-light" id="hours_display" readonly value="0">
+                        <span class="input-group-text">hours</span>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="col-12">
+                    <label for="description" class="form-label">Description (Optional)</label>
+                    <textarea class="form-control @error('description') is-invalid @enderror" 
+                              id="description" name="description" rows="3" 
+                              placeholder="e.g., Based on production schedule for January 2026...">{{ old('description') }}</textarea>
+                    @error('description')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="col-12">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Create Planned Time
+                        </button>
+                        <a href="{{ route('planned-times.index') }}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Reference Information -->
+    <div class="card mt-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Calculation Guide</h5>
+        </div>
+        <div class="card-body">
+            <p><strong>Formula:</strong> Planned Time = Days in Month × 24 hours × 60 minutes × Number of Active Machines</p>
+            <p class="mb-0"><strong>Example:</strong> For January (31 days) with 5 active machines:</p>
+            <p class="ms-3 mb-0">31 × 24 × 60 × 5 = 223,200 minutes = 3,720 hours</p>
+            <p class="ms-3"><small class="text-muted">(Or match your actual production schedule)</small></p>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateHours() {
+    const minutes = parseInt(document.getElementById('planned_time_minutes').value) || 0;
+    const hours = (minutes / 60).toFixed(2);
+    document.getElementById('hours_display').value = hours;
+}
+
+// Update on load and on input change
+document.getElementById('planned_time_minutes').addEventListener('input', updateHours);
+document.addEventListener('DOMContentLoaded', updateHours);
+</script>
+@endsection

@@ -16,6 +16,7 @@ class LaporanHarian extends Model
         'spare_part_id',
         'mesin_name',
         'line',
+        'line_status',
         'catatan',
         'sparepart',
         'qty_sparepart',

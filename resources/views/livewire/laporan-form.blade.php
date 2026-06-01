@@ -28,6 +28,24 @@
                     </select>
                     @error('line_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                 </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Status Line <span class="text-danger">*</span></label>
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="line_status" id="line_on" value="on" 
+                            wire:model="line_status" checked>
+                        <label class="btn btn-outline-success" for="line_on" style="cursor: pointer;">
+                            <i class="bi bi-check-circle"></i> ON
+                        </label>
+
+                        <input type="radio" class="btn-check" name="line_status" id="line_off" value="off" 
+                            wire:model="line_status">
+                        <label class="btn btn-outline-danger" for="line_off" style="cursor: pointer;">
+                            <i class="bi bi-x-circle"></i> OFF
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-2">ON = Downtime dihitung | OFF = Downtime tidak dihitung</small>
+                </div>
             </div>
 
             <div class="mb-3">

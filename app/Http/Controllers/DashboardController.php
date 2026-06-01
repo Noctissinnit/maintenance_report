@@ -78,6 +78,41 @@ class DashboardController extends Controller
         ));
     }
 
+    /**
+     * Get downtime by scope (Electrical, Mechanical, Utility, Building) in hours
+     */
+    private function getDowntimeByScope($tahun, $bulan, $baseQueryCallback = null)
+    {
+        if ($baseQueryCallback === null) {
+            // Default query for given month/year
+            $baseQueryCallback = function() use ($tahun, $bulan) {
+                return LaporanHarian::whereYear('tanggal_laporan', $tahun)
+                    ->whereMonth('tanggal_laporan', $bulan);
+            };
+        }
+
+        $scopes = ['electrical', 'mechanical', 'utility', 'building'];
+        $downtimeByScope = [];
+
+        foreach ($scopes as $scope) {
+            $query = $baseQueryCallback();
+            $downtimeMinutes = $query->where('scope', $scope)
+                ->whereIn('jenis_pekerjaan', ['corrective', 'preventive', 'change over product'])
+                ->sum('downtime_min') ?? 0;
+            
+            // Convert minutes to hours
+            $downtimeHours = round($downtimeMinutes / 60, 2);
+            
+            $downtimeByScope[] = [
+                'scope' => ucfirst($scope),
+                'downtime_hours' => $downtimeHours,
+                'downtime_minutes' => $downtimeMinutes
+            ];
+        }
+
+        return $downtimeByScope;
+    }
+
     private function departmentHeadDashboard()
     {
         // Check if user has permission
@@ -86,20 +121,29 @@ class DashboardController extends Controller
         }
 
         // Get filter parameters
+        $filterMode = request('filter_mode') ?? 'month';
         $bulan = request('bulan') ?? now()->month;
         $tahun = request('tahun') ?? now()->year;
+        $dariTanggal = request('dari_tanggal') ?? date('Y-m-01');
+        $sampaiTanggal = request('sampai_tanggal') ?? date('Y-m-d');
         $mesin = request('mesin');
         $line = request('line');
         $showAllTime = request('all_time') == '1';
 
         // Base query dengan filter
-        $baseQuery = function() use ($tahun, $bulan, $mesin, $line, $showAllTime) {
+        $baseQuery = function() use ($tahun, $bulan, $mesin, $line, $showAllTime, $filterMode, $dariTanggal, $sampaiTanggal) {
             $q = LaporanHarian::query();
             
             // Only apply date filters if not showing all time data
             if (!$showAllTime) {
-                $q->whereYear('tanggal_laporan', $tahun)
-                  ->whereMonth('tanggal_laporan', $bulan);
+                if ($filterMode === 'date_range') {
+                    // Use date range filter
+                    $q->whereBetween('tanggal_laporan', [$dariTanggal, $sampaiTanggal]);
+                } else {
+                    // Use month/year filter (default)
+                    $q->whereYear('tanggal_laporan', $tahun)
+                      ->whereMonth('tanggal_laporan', $bulan);
+                }
             }
 
             if ($mesin) {
@@ -119,10 +163,11 @@ class DashboardController extends Controller
         // Total Laporan
         $totalLaporan = $baseQuery()->count();
         
-        // Total Downtime (menit) - hanya dari laporan corrective dengan downtime (failure)
-        // Match MTBF calculation which only counts corrective maintenance
-        $totalDowntimeFailed = $baseQuery()->where('jenis_pekerjaan', 'corrective')->where('downtime_min', '>', 0)->sum('downtime_min') ?? 0;
-        $totalDowntime = $totalDowntimeFailed;
+        // Total Downtime (menit) = Corrective + Preventive Maintenance downtime
+        // Revision: Downtime includes both corrective and preventive maintenance
+        $totalDowntimeCorrective = $baseQuery()->where('jenis_pekerjaan', 'corrective')->where('downtime_min', '>', 0)->sum('downtime_min') ?? 0;
+        $totalDowntimePreventive = $baseQuery()->where('jenis_pekerjaan', 'preventive')->where('downtime_min', '>', 0)->sum('downtime_min') ?? 0;
+        $totalDowntime = $totalDowntimeCorrective + $totalDowntimePreventive;
         
         // Average MTTR (Mean Time To Repair) - rata-rata dari laporan corrective yang punya downtime
         $avgMTTR = $baseQuery()->where('jenis_pekerjaan', 'corrective')->where('downtime_min', '>', 0)
@@ -141,45 +186,86 @@ class DashboardController extends Controller
             ->get();
         
         // Machine Performance Metrics
-        // Calculate Planned time based on all_time flag and available data
-        // FORMULA: Planned Time = Jumlah Waktu dalam 1 (bulan/tahun) × Jumlah Mesin yang aktif
-        
-        // Get count of active machines based on filters
-        $activeMachinesQuery = Machine::where('status', 'active');
-        if ($mesin) {
-            $activeMachinesQuery->where('name', $mesin);
-        }
-        $activeMachinesCount = $activeMachinesQuery->count();
-        $activeMachinesCount = max(1, $activeMachinesCount); // Minimal 1 machine
+        // Calculate Planned time from database if available, otherwise calculate automatically
+        // REVISION: Planned Time can be set manually by administrator via admin interface
         
         $totalPlannedTime = 0;
         
         if ($showAllTime) {
-            // For all-time data, query for earliest and latest report dates directly
-            $earliestReport = $baseQuery()->orderBy('tanggal_laporan', 'asc')->first();
-            $latestReport = $baseQuery()->orderBy('tanggal_laporan', 'desc')->first();
-            
-            if ($earliestReport && $latestReport) {
-                $startCarbon = \Carbon\Carbon::parse($earliestReport->tanggal_laporan);
-                $endCarbon = \Carbon\Carbon::parse($latestReport->tanggal_laporan);
-                $totalDays = $endCarbon->diffInDays($startCarbon) + 1;
-                // Formula: days × 24 hours × 60 minutes × number of active machines
-                $totalPlannedTime = $totalDays * 24 * 60 * $activeMachinesCount;
+            // For all-time data, sum all planned times from records, or calculate if none exist
+            $plannedTimes = \App\Models\PlannedTime::all()->sum('planned_time_minutes');
+            if ($plannedTimes > 0) {
+                $totalPlannedTime = $plannedTimes;
+            } else {
+                // Fallback: calculate from earliest and latest report dates
+                $earliestReport = $baseQuery()->orderBy('tanggal_laporan', 'asc')->first();
+                $latestReport = $baseQuery()->orderBy('tanggal_laporan', 'desc')->first();
+                
+                if ($earliestReport && $latestReport) {
+                    $startCarbon = \Carbon\Carbon::parse($earliestReport->tanggal_laporan);
+                    $endCarbon = \Carbon\Carbon::parse($latestReport->tanggal_laporan);
+                    $totalDays = $endCarbon->diffInDays($startCarbon) + 1;
+                    
+                    // Get count of active machines
+                    $activeMachinesQuery = Machine::where('status', 'active');
+                    if ($mesin) {
+                        $activeMachinesQuery->where('name', $mesin);
+                    }
+                    $activeMachinesCount = max(1, $activeMachinesQuery->count());
+                    
+                    // Formula: days × 24 hours × 60 minutes × number of active machines
+                    $totalPlannedTime = $totalDays * 24 * 60 * $activeMachinesCount;
+                }
             }
         } else {
-            // For specific month, calculate from days in that month
-            $daysInMonth = \Carbon\Carbon::create($tahun, $bulan)->daysInMonth;
-            // Formula: days × 24 hours × 60 minutes × number of active machines
-            $totalPlannedTime = $daysInMonth * 24 * 60 * $activeMachinesCount;
+            // For date range or specific month, calculate planned time
+            if ($filterMode === 'date_range') {
+                // Calculate based on date range
+                $startCarbon = \Carbon\Carbon::parse($dariTanggal);
+                $endCarbon = \Carbon\Carbon::parse($sampaiTanggal);
+                $totalDays = $endCarbon->diffInDays($startCarbon) + 1;
+                
+                // Get count of active machines
+                $activeMachinesQuery = Machine::where('status', 'active');
+                if ($mesin) {
+                    $activeMachinesQuery->where('name', $mesin);
+                }
+                $activeMachinesCount = max(1, $activeMachinesQuery->count());
+                
+                // Formula: days × 24 hours × 60 minutes × number of active machines
+                $totalPlannedTime = $totalDays * 24 * 60 * $activeMachinesCount;
+            } else {
+                // For specific month, check database first, then fallback to calculation
+                $plannedTimeRecord = \App\Models\PlannedTime::where('year', $tahun)
+                    ->where('month', $bulan)
+                    ->first();
+                
+                if ($plannedTimeRecord) {
+                    // Use manually entered planned time
+                    $totalPlannedTime = $plannedTimeRecord->planned_time_minutes;
+                } else {
+                    // Fallback: calculate from days in month and active machines
+                    $daysInMonth = \Carbon\Carbon::create($tahun, $bulan)->daysInMonth;
+                    
+                    // Get count of active machines
+                    $activeMachinesQuery = Machine::where('status', 'active');
+                    if ($mesin) {
+                        $activeMachinesQuery->where('name', $mesin);
+                    }
+                    $activeMachinesCount = max(1, $activeMachinesQuery->count());
+                    
+                    // Formula: days × 24 hours × 60 minutes × number of active machines
+                    $totalPlannedTime = $daysInMonth * 24 * 60 * $activeMachinesCount;
+                }
+            }
         }
         
         // Total Breakdown = jumlah laporan corrective dengan downtime
-        // Match MTBF calculation which only counts corrective maintenance
+        // (Breakdown = failure events, separate from downtime hours)
         $totalBreakdown = $baseQuery()->where('jenis_pekerjaan', 'corrective')->where('downtime_min', '>', 0)->count();
         
-        // Use raw downtime total (no per-day capping) to match MTBF page calculation
-        // This is already calculated in $totalDowntimeFailed above
-        $totalDowntimeMinutes = $totalDowntimeFailed;
+        // Total Downtime Minutes = Corrective + Preventive (calculated above)
+        $totalDowntimeMinutes = $totalDowntime;
         
         // Ensure values are positive and valid
         $totalPlannedTime = max(0, $totalPlannedTime);
@@ -207,8 +293,10 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
         
-        // Top 7 Breakdown by Line
-        $topBreakdownLine = $baseQuery()->select('line', DB::raw('COUNT(*) as breakdown_count'))
+        // Top 7 Breakdown by Line (with downtime) - only count LINE ON
+        $topBreakdownLine = $baseQuery()->where('line_status', 'on')->select('line', 
+                DB::raw('COUNT(*) as breakdown_count'),
+                DB::raw('SUM(downtime_min) as total_downtime_min'))
             ->groupBy('line')
             ->orderByDesc('breakdown_count')
             ->limit(7)
@@ -275,6 +363,11 @@ class DashboardController extends Controller
         $topReliableMachines = array_slice($mtbfData, 0, 5);
         $worstMachines = array_slice(array_reverse($mtbfData), 0, 5);
 
+        // Get downtime by scope (Electrical, Mechanical, Utility, Building)
+        $downtimeByScope = $this->getDowntimeByScope($tahun, $bulan, function() use ($baseQuery) {
+            return $baseQuery();
+        });
+
         return view('dashboard.department-head', compact(
             'totalLaporan',
             'totalDowntime',
@@ -303,7 +396,11 @@ class DashboardController extends Controller
             'avgMTBFHours',
             'topReliableMachines',
             'worstMachines',
-            'showAllTime'
+            'showAllTime',
+            'downtimeByScope',
+            'filterMode',
+            'dariTanggal',
+            'sampaiTanggal'
         ));
     }
 
@@ -342,10 +439,11 @@ class DashboardController extends Controller
         // Total Laporan
         $totalLaporan = $baseQuery()->count();
         
-        // Total Downtime (menit) - hanya dari laporan corrective dengan downtime (failure)
-        // Match MTBF calculation which only counts corrective maintenance
-        $totalDowntimeFailed = $baseQuery()->where('jenis_pekerjaan', 'corrective')->where('downtime_min', '>', 0)->sum('downtime_min') ?? 0;
-        $totalDowntime = $totalDowntimeFailed;
+        // Total Downtime (menit) = Corrective + Preventive Maintenance downtime
+        // Revision: Downtime includes both corrective and preventive maintenance
+        $totalDowntimeCorrective = $baseQuery()->where('jenis_pekerjaan', 'corrective')->where('downtime_min', '>', 0)->sum('downtime_min') ?? 0;
+        $totalDowntimePreventive = $baseQuery()->where('jenis_pekerjaan', 'preventive')->where('downtime_min', '>', 0)->sum('downtime_min') ?? 0;
+        $totalDowntime = $totalDowntimeCorrective + $totalDowntimePreventive;
         
         // Average MTTR (Mean Time To Repair) - rata-rata dari laporan corrective yang punya downtime
         $avgMTTR = $baseQuery()->where('jenis_pekerjaan', 'corrective')->where('downtime_min', '>', 0)
@@ -355,25 +453,38 @@ class DashboardController extends Controller
         $avgMTBF = 0;
         
         // Machine Performance Metrics
-        // FORMULA: Planned Time = Jumlah Waktu dalam 1 (bulan/tahun) × Jumlah Mesin yang aktif
-        // Get count of active machines based on filters
-        $activeMachinesQuery = Machine::where('status', 'active');
-        if ($mesin) {
-            $activeMachinesQuery->where('name', $mesin);
-        }
-        $activeMachinesCount = $activeMachinesQuery->count();
-        $activeMachinesCount = max(1, $activeMachinesCount); // Minimal 1 machine
+        // Calculate Planned time from database if available, otherwise calculate automatically
+        // REVISION: Planned Time can be set manually by administrator
         
-        $daysInMonth = \Carbon\Carbon::create($tahun, $bulan)->daysInMonth;
-        // Formula: days × 24 hours × 60 minutes × number of active machines
-        $totalPlannedTime = $daysInMonth * 24 * 60 * $activeMachinesCount;
+        // For specific month, check database first, then fallback to calculation
+        $plannedTimeRecord = \App\Models\PlannedTime::where('year', $tahun)
+            ->where('month', $bulan)
+            ->first();
+        
+        if ($plannedTimeRecord) {
+            // Use manually entered planned time
+            $totalPlannedTime = $plannedTimeRecord->planned_time_minutes;
+        } else {
+            // Fallback: calculate from days in month and active machines
+            $daysInMonth = \Carbon\Carbon::create($tahun, $bulan)->daysInMonth;
+            
+            // Get count of active machines
+            $activeMachinesQuery = Machine::where('status', 'active');
+            if ($mesin) {
+                $activeMachinesQuery->where('name', $mesin);
+            }
+            $activeMachinesCount = max(1, $activeMachinesQuery->count());
+            
+            // Formula: days × 24 hours × 60 minutes × number of active machines
+            $totalPlannedTime = $daysInMonth * 24 * 60 * $activeMachinesCount;
+        }
         
         // Total Breakdown = jumlah laporan corrective dengan downtime
-        // Match MTBF calculation which only counts corrective maintenance
+        // (Breakdown = failure events, separate from downtime hours)
         $totalBreakdown = $baseQuery()->where('jenis_pekerjaan', 'corrective')->where('downtime_min', '>', 0)->count();
         
-        // Use raw downtime total (no per-day capping) to match MTBF page calculation
-        $totalDowntimeMinutes = $totalDowntimeFailed;
+        // Total Downtime Minutes = Corrective + Preventive (calculated above)
+        $totalDowntimeMinutes = $totalDowntime;
         
         // Ensure values are positive and valid
         $totalPlannedTime = max(0, $totalPlannedTime);
@@ -401,8 +512,10 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
         
-        // Top 7 Breakdown by Line
-        $topBreakdownLine = $baseQuery()->select('line', DB::raw('COUNT(*) as breakdown_count'))
+        // Top 7 Breakdown by Line (with downtime)
+        $topBreakdownLine = $baseQuery()->select('line', 
+                DB::raw('COUNT(*) as breakdown_count'),
+                DB::raw('SUM(downtime_min) as total_downtime_min'))
             ->groupBy('line')
             ->orderByDesc('breakdown_count')
             ->limit(7)
@@ -437,6 +550,11 @@ class DashboardController extends Controller
         $allMesins = LaporanHarian::distinct()->pluck('mesin_name')->sort();
         $allLines = LaporanHarian::distinct()->pluck('line')->sort();
 
+        // Get downtime by scope (Electrical, Mechanical, Utility, Building)
+        $downtimeByScope = $this->getDowntimeByScope($tahun, $bulan, function() use ($baseQuery) {
+            return $baseQuery();
+        });
+
         return view('dashboard.supervisor', compact(
             'totalLaporan',
             'totalDowntime',
@@ -460,7 +578,8 @@ class DashboardController extends Controller
             'mesin',
             'line',
             'allMesins',
-            'allLines'
+            'allLines',
+            'downtimeByScope'
         ));
     }
 

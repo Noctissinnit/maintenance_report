@@ -12,6 +12,7 @@ use App\Http\Controllers\LineController;
 use App\Http\Controllers\TemplateExportController;
 use App\Http\Controllers\MTBFController;
 use App\Http\Controllers\CommandController;
+use App\Http\Controllers\PlannedTimeController;
 
 Route::get('/', function () {
     return redirect()->route('dashboard');
@@ -100,6 +101,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/spare-parts/import-form', [SparePartController::class, 'importForm'])->name('spare-parts.import-form');
         Route::post('/spare-parts/import', [SparePartController::class, 'import'])->name('spare-parts.import');
         Route::get('/spare-parts/monitoring', [SparePartController::class, 'monitoring'])->name('spare-parts.monitoring');
+    });
+    
+    // Planned Time Management (Admin only)
+    Route::middleware(['can:manage_machines'])->group(function () {
+        Route::resource('planned-times', PlannedTimeController::class);
     });
     
     // MTBF Analysis Routes - Restricted to view_own_laporan permission
