@@ -55,33 +55,102 @@
                 @error('catatan')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="spare_part_id" class="form-label">Nama Spare Part</label>
-                    <select class="form-select select2 @error('spare_part_id') is-invalid @enderror" 
-                        id="spare_part_id" wire:model="spare_part_id" style="width: 100%;">
-                        <option value="">-- Pilih Spare Part --</option>
-                        @foreach($spareParts as $part)
-                            <option value="{{ $part->id }}">{{ $part->name }}</option>
-                        @endforeach
-                    </select>
-                    @error('spare_part_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <label for="qty_sparepart" class="form-label">Jumlah Spare Part</label>
-                    <input type="number" class="form-control @error('qty_sparepart') is-invalid @enderror" 
-                        id="qty_sparepart" wire:model="qty_sparepart" min="0">
-                    @error('qty_sparepart')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                </div>
-            </div>
-
+            <!-- Spare Parts Section - Optional (Hidden by Default) -->
             <div class="mb-3">
-                <label for="komentar_sparepart" class="form-label">Komentar Spare Part</label>
-                <textarea class="form-control @error('komentar_sparepart') is-invalid @enderror" 
-                    id="komentar_sparepart" wire:model="komentar_sparepart" rows="2"></textarea>
-                @error('komentar_sparepart')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                <button type="button" class="btn btn-outline-success" 
+                    wire:click="toggleSparePartsUsage">
+                    <i class="bi bi-plus-lg"></i> Tambah Spare Part
+                </button>
             </div>
+
+            @if($use_spare_parts)
+            <div class="card mb-3 border-success">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Form Spare Part</h6>
+                    <button type="button" class="btn btn-sm btn-light" 
+                        wire:click="toggleSparePartsUsage">
+                        <i class="bi bi-x-lg"></i> Tutup
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Form Tambah Spare Part -->
+                    <div class="row mb-3">
+                        <div class="col-md-5 mb-3">
+                            <label for="temp_spare_part_id" class="form-label">Pilih Spare Part</label>
+                            <select class="form-select select2" 
+                                id="temp_spare_part_id" wire:model="temp_spare_part_id" style="width: 100%;">
+                                <option value="">-- Pilih Spare Part --</option>
+                                @foreach($spareParts as $part)
+                                    <option value="{{ $part->id }}">
+                                        {{ $part->name }} (Stok: {{ $part->stock }} {{ $part->unit }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label for="temp_qty_sparepart" class="form-label">Jumlah</label>
+                            <input type="number" class="form-control" 
+                                id="temp_qty_sparepart" wire:model="temp_qty_sparepart" min="1" placeholder="0">
+                        </div>
+
+                        <div class="col-md-4 mb-3 d-flex align-items-end">
+                            <button type="button" class="btn btn-primary w-100" wire:click="addSparePart">
+                                <i class="bi bi-plus-lg"></i> Tambah
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Daftar Spare Part yang Ditambahkan -->
+                    @if(!empty($spare_parts_list))
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Nama Spare Part</th>
+                                    <th class="text-center">Jumlah</th>
+                                    <th>Komentar</th>
+                                    <th class="text-center" style="width: 80px;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($spare_parts_list as $index => $part)
+                                <tr>
+                                    <td>{{ $index + 1 }}</td>
+                                    <td>
+                                        <strong>{{ $part['name'] }}</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info">{{ $part['qty'] }}</span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ $part['komentar'] ?? '-' }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-danger" 
+                                            wire:click="removeSparePart({{ $index }})">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="alert alert-info small mb-0">
+                        <i class="bi bi-info-circle"></i> 
+                        <strong>Catatan:</strong> Stok spare part akan berkurang otomatis sesuai jumlah yang digunakan saat laporan disimpan.
+                    </div>
+                    @else
+                    <div class="alert alert-secondary small mb-0">
+                        <i class="bi bi-info-circle"></i> Belum ada spare part yang ditambahkan. Pilih spare part di atas untuk menambahkannya.
+                    </div>
+                    @endif
+                </div>
+            </div>
+            @endif
 
             <div class="row">
                 <div class="col-md-6 mb-3">
@@ -170,17 +239,30 @@
 </div>
 
 <script>
-    // Re-initialize Select2 after Livewire updates
-    document.addEventListener('livewire:navigated', function() {
+    // Function to initialize Select2
+    function initSelect2() {
         if (typeof jQuery !== 'undefined' && jQuery.fn.select2) {
-            jQuery('.select2').select2();
+            jQuery('.select2').select2({
+                allowClear: true,
+                width: '100%'
+            });
         }
+    }
+
+    // Re-initialize Select2 after Livewire updates
+    document.addEventListener('livewire:updated', function() {
+        initSelect2();
+    });
+
+    document.addEventListener('livewire:navigated', function() {
+        initSelect2();
     });
 
     // Initial Select2 initialization
     Livewire.on('select2:reinit', function() {
-        if (typeof jQuery !== 'undefined' && jQuery.fn.select2) {
-            jQuery('.select2').select2();
-        }
+        initSelect2();
     });
+
+    // Call on page load
+    initSelect2();
 </script>

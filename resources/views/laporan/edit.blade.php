@@ -148,6 +148,14 @@
                         id="downtime_min" name="downtime_min" value="{{ old('downtime_min', $laporan->downtime_min) }}" min="0" readonly>
                     @error('downtime_min')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="planned_time_minutes" class="form-label">Planned Time (Menit) <small class="text-muted">(dari PPIC)</small></label>
+                    <input type="number" class="form-control @error('planned_time_minutes') is-invalid @enderror" 
+                        id="planned_time_minutes" name="planned_time_minutes" value="{{ old('planned_time_minutes', $laporan->planned_time_minutes) }}" min="0" placeholder="Masukkan planned time dari jadwal PPIC">
+                    <small class="text-muted d-block mt-1">Diisi manual berdasarkan jadwal yang ditetapkan departemen PPIC</small>
+                    @error('planned_time_minutes')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
             </div>
 
             <div class="mt-4">

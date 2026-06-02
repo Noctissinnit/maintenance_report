@@ -24,8 +24,16 @@ class LaporanForm extends Component
     public $start_time = '';
     public $end_time = '';
     public $downtime_min = 0;
+    public $planned_time_minutes = 0;
     public $tipe_laporan = '';
     public $tanggal_laporan = '';
+    
+    // Multiple spare parts
+    public $use_spare_parts = false;
+    public $spare_parts_list = [];
+    public $temp_spare_part_id = '';
+    public $temp_qty_sparepart = '';
+    public $temp_komentar_sparepart = '';
 
     public $machines = [];
     public $lines = [];
@@ -39,9 +47,11 @@ class LaporanForm extends Component
         'spare_part_id' => 'nullable|integer|exists:spare_parts,id',
         'qty_sparepart' => 'integer|min:0',
         'komentar_sparepart' => 'nullable|string',
+        'spare_parts_used' => 'nullable|string',
         'jenis_pekerjaan' => 'required|in:corrective,preventive,change over product,modifikasi,utility',
         'scope' => 'required|in:Electrik,Mekanik,Utility,Building',
         'downtime_min' => 'integer|min:0',
+        'planned_time_minutes' => 'nullable|integer|min:0',
         'tipe_laporan' => 'in:harian,mingguan,bulanan',
         'tanggal_laporan' => 'required|date',
         'start_time' => 'nullable|date_format:Y-m-d\TH:i',
@@ -82,6 +92,63 @@ class LaporanForm extends Component
         }
     }
 
+    // Toggle spare parts usage
+    public function toggleSparePartsUsage()
+    {
+        $this->use_spare_parts = !$this->use_spare_parts;
+        if (!$this->use_spare_parts) {
+            $this->spare_parts_list = [];
+            $this->resetTempFields();
+        }
+    }
+
+    // Add spare part to list
+    public function addSparePart()
+    {
+        if (!$this->temp_spare_part_id || !$this->temp_qty_sparepart) {
+            session()->flash('error', 'Silakan pilih spare part dan masukkan jumlah');
+            return;
+        }
+
+        $sparePart = SparePart::find($this->temp_spare_part_id);
+        if (!$sparePart) {
+            session()->flash('error', 'Spare part tidak ditemukan');
+            return;
+        }
+
+        // Check if spare part already exists in list
+        $exists = collect($this->spare_parts_list)->contains(fn($item) => $item['id'] == $this->temp_spare_part_id);
+        if ($exists) {
+            session()->flash('error', 'Spare part sudah ditambahkan, gunakan tombol edit untuk mengubah jumlah');
+            return;
+        }
+
+        // Add to list
+        $this->spare_parts_list[] = [
+            'id' => $this->temp_spare_part_id,
+            'name' => $sparePart->name,
+            'qty' => (int)$this->temp_qty_sparepart,
+            'komentar' => $this->temp_komentar_sparepart,
+        ];
+
+        $this->resetTempFields();
+    }
+
+    // Remove spare part from list
+    public function removeSparePart($index)
+    {
+        unset($this->spare_parts_list[$index]);
+        $this->spare_parts_list = array_values($this->spare_parts_list);
+    }
+
+    // Reset temporary fields
+    private function resetTempFields()
+    {
+        $this->temp_spare_part_id = '';
+        $this->temp_qty_sparepart = '';
+        $this->temp_komentar_sparepart = '';
+    }
+
     public function submit()
     {
         // Check permission
@@ -115,6 +182,27 @@ class LaporanForm extends Component
             $validated['downtime_min'] = $this->downtime_min;
         } else {
             $validated['downtime_min'] = 0;
+        }
+
+        // Store multiple spare parts data if used
+        if ($this->use_spare_parts && !empty($this->spare_parts_list)) {
+            $validated['spare_parts_used'] = json_encode($this->spare_parts_list);
+            
+            // Update stock for each spare part
+            foreach ($this->spare_parts_list as $sparePartData) {
+                $sparePart = SparePart::find($sparePartData['id']);
+                if ($sparePart) {
+                    // Reduce stock
+                    $sparePart->decrement('stock', $sparePartData['qty']);
+                }
+            }
+
+            // Set first spare part for backward compatibility
+            if (isset($this->spare_parts_list[0])) {
+                $validated['spare_part_id'] = $this->spare_parts_list[0]['id'];
+                $validated['qty_sparepart'] = $this->spare_parts_list[0]['qty'];
+                $validated['komentar_sparepart'] = $this->spare_parts_list[0]['komentar'];
+            }
         }
 
         LaporanHarian::create($validated);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\LaporanHarian;
 use App\Models\Machine;
+use App\Models\Line;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -40,6 +41,13 @@ class DashboardPdfController extends Controller
             if ($line) {
                 $q->where('line', $line);
             }
+
+            // Filter by line_status = 'on' (exclude 'off' lines that don't count downtime)
+            // Include null values for backward compatibility with old records
+            $q->where(function($subQuery) {
+                $subQuery->where('line_status', 'on')
+                         ->orWhereNull('line_status');
+            });
 
             return $q;
         };
@@ -117,12 +125,22 @@ class DashboardPdfController extends Controller
             ->limit(10)
             ->get();
         
-        // Top 7 Breakdown by Line
-        $topBreakdownLine = $baseQuery()->select('line', DB::raw('COUNT(*) as breakdown_count'))
+        // All Breakdown by Line (showing all lines including those with 0 breakdown count)
+        $allLines = Line::get();
+        $breakdownByLine = $baseQuery()
+            ->select('line', DB::raw('COUNT(*) as breakdown_count'))
             ->groupBy('line')
-            ->orderByDesc('breakdown_count')
-            ->limit(7)
-            ->get();
+            ->get()
+            ->keyBy('line');
+        
+        // Combine all lines with breakdown data (including 0 counts)
+        $topBreakdownLine = $allLines->map(function($line) use ($breakdownByLine) {
+            $breakdown = $breakdownByLine->get($line->name);
+            return (object)[
+                'line' => $line->name,
+                'breakdown_count' => $breakdown ? $breakdown->breakdown_count : 0
+            ];
+        })->sortByDesc('breakdown_count');
         
         // Top 7 Breakdown by Catatan
         $topBreakdownCatatan = $baseQuery()->select('catatan', DB::raw('COUNT(*) as breakdown_count'))

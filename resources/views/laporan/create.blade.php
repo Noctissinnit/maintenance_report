@@ -63,43 +63,107 @@
                 @error('catatan')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="spare_part_id" class="form-label">Nama Spare Part</label>
-                    <select class="form-select select2 @error('spare_part_id') is-invalid @enderror" 
-                        id="spare_part_id" name="spare_part_id" style="width: 100%;">
-                        <option value="">-- Pilih Spare Part --</option>
-                        @foreach($spareParts as $part)
-                            <option value="{{ $part->id }}" data-stock="{{ $part->stock }}" data-unit="{{ $part->unit }}" @selected(old('spare_part_id') == $part->id)>{{ $part->name }}</option>
-                        @endforeach
-                    </select>
-                    @error('spare_part_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                </div>
+            <!-- Spare Parts Section - Optional (Hidden by Default) -->
+            <div class="mb-3">
+                <button type="button" class="btn btn-outline-success" 
+                    onclick="toggleSparePartsForm()">
+                    <i class="bi bi-plus-lg"></i> Tambah Spare Part
+                </button>
+            </div>
 
-                <div class="col-md-6 mb-3">
-                    <label for="stock_display" class="form-label">Stok Tersedia</label>
-                    <div class="input-group">
-                        <input type="text" class="form-control bg-light" 
-                            id="stock_display" readonly value="0">
-                        <span class="input-group-text" id="unit_display">pcs</span>
+            <div id="sparePartsFormContainer" style="display: none;">
+                <div class="card mb-3 border-success">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Form Spare Part</h6>
+                        <button type="button" class="btn btn-sm btn-light" 
+                            onclick="toggleSparePartsForm()">
+                            <i class="bi bi-x-lg"></i> Tutup
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <!-- Form Tambah Spare Part -->
+                        <div class="row mb-3">
+                            <div class="col-md-5 mb-3">
+                                <label for="temp_spare_part_id" class="form-label">Pilih Spare Part</label>
+                                <select class="form-select select2" 
+                                    id="temp_spare_part_id" style="width: 100%;" onchange="updateStockDisplay()">
+                                    <option value="">-- Pilih Spare Part --</option>
+                                    @foreach($spareParts as $part)
+                                        @if($part->stock > 0)
+                                            <option value="{{ $part->id }}" data-name="{{ $part->name }}" data-stock="{{ $part->stock }}" data-unit="{{ $part->unit }}">
+                                                {{ $part->name }} (Stok: {{ $part->stock }} {{ $part->unit }})
+                                            </option>
+                                        @else
+                                            <option value="{{ $part->id }}" data-name="{{ $part->name }}" data-stock="{{ $part->stock }}" data-unit="{{ $part->unit }}" disabled style="color: #ccc;">
+                                                {{ $part->name }} (Stok: 0 - HABIS)
+                                            </option>
+                                        @endif
+                                    @endforeach
+                                </select>
+                                <small class="text-muted d-block mt-1">Spare part dengan stok 0 tidak bisa dipilih</small>
+                            </div>
+
+                            <div class="col-md-3 mb-3">
+                                <label for="temp_stock_display" class="form-label">Stok Tersedia</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control bg-light" 
+                                        id="temp_stock_display" readonly value="0">
+                                    <span class="input-group-text" id="temp_unit_display">pcs</span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-2 mb-3">
+                                <label for="temp_qty_sparepart" class="form-label">Jumlah</label>
+                                <input type="number" class="form-control" 
+                                    id="temp_qty_sparepart" min="1" placeholder="0">
+                            </div>
+
+                            <div class="col-md-2 mb-3 d-flex align-items-end">
+                                <button type="button" class="btn btn-primary w-100" onclick="addSparePart()">
+                                    <i class="bi bi-plus-lg"></i> Tambah
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="temp_komentar_sparepart" class="form-label">Komentar</label>
+                            <textarea class="form-control" 
+                                id="temp_komentar_sparepart" rows="2" placeholder="Komentar spare part (opsional)"></textarea>
+                        </div>
+
+                        <!-- Daftar Spare Part yang Ditambahkan -->
+                        <div id="sparePartsTableContainer" style="display: none;">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Nama Spare Part</th>
+                                            <th class="text-center">Jumlah</th>
+                                            <th>Komentar</th>
+                                            <th class="text-center" style="width: 80px;">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="sparePartsTable">
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="alert alert-info small mb-0">
+                                <i class="bi bi-info-circle"></i> 
+                                <strong>Catatan:</strong> Stok spare part akan berkurang otomatis sesuai jumlah yang digunakan saat laporan disimpan.
+                            </div>
+                        </div>
+
+                        <div id="sparePartsEmpty" class="alert alert-secondary small mb-0">
+                            <i class="bi bi-info-circle"></i> Belum ada spare part yang ditambahkan. Pilih spare part di atas untuk menambahkannya.
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="qty_sparepart" class="form-label">Jumlah Spare Part</label>
-                    <input type="number" class="form-control @error('qty_sparepart') is-invalid @enderror" 
-                        id="qty_sparepart" name="qty_sparepart" value="{{ old('qty_sparepart', 0) }}" min="0" step="0.01">
-                    @error('qty_sparepart')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                </div>
-
-            <div class="mb-3">
-                <label for="komentar_sparepart" class="form-label">Komentar Spare Part</label>
-                <textarea class="form-control @error('komentar_sparepart') is-invalid @enderror" 
-                    id="komentar_sparepart" name="komentar_sparepart" rows="2">{{ old('komentar_sparepart') }}</textarea>
-                @error('komentar_sparepart')<div class="invalid-feedback">{{ $message }}</div>@enderror
-            </div>
+            <!-- Hidden field untuk store multiple spare parts -->
+            <input type="hidden" id="spare_parts_used" name="spare_parts_used" value="">
 
             <div class="row">
                 <div class="col-md-6 mb-3">
@@ -151,6 +215,14 @@
                         id="downtime_min" name="downtime_min" value="{{ old('downtime_min', 0) }}" min="0" readonly>
                     @error('downtime_min')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="planned_time_minutes" class="form-label">Planned Time (Menit) <small class="text-muted">(dari PPIC)</small></label>
+                    <input type="number" class="form-control @error('planned_time_minutes') is-invalid @enderror" 
+                        id="planned_time_minutes" name="planned_time_minutes" value="{{ old('planned_time_minutes', 0) }}" min="0" placeholder="Masukkan planned time dari jadwal PPIC">
+                    <small class="text-muted d-block mt-1">Diisi manual berdasarkan jadwal yang ditetapkan departemen PPIC</small>
+                    @error('planned_time_minutes')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
             </div>
 
             <div class="row">
@@ -181,6 +253,12 @@
                 <a href="{{ route('laporan.index') }}" class="btn btn-secondary">
                     <i class="bi bi-arrow-left"></i> Kembali
                 </a>
+            </div>
+
+            <!-- DEBUG: Show spare parts data yang akan dikirim -->
+            <div class="alert alert-dark small mt-3" id="debugSparePartsData" style="display: none;">
+                <strong>DEBUG - Data Spare Parts yang akan dikirim:</strong>
+                <pre id="debugSparePartsContent" style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;"></pre>
             </div>
         </form>
     </div>
@@ -300,19 +378,223 @@
         // Display stock for selected spare part on load
         displaySparePartStock();
         
-        // Form submit handler - ensure line_id is filled
+        // Initialize Select2 for temp spare part dropdown
+        if (typeof jQuery !== 'undefined' && jQuery.fn.select2) {
+            jQuery('#temp_spare_part_id').select2();
+            
+            // Add event listener for temp spare part selection
+            jQuery('#temp_spare_part_id').on('select2:select', function() {
+                updateStockDisplay();
+            }).on('select2:unselecting', function() {
+                updateStockDisplay();
+            });
+        }
+        
+        // Initialize stock display on load
+        updateStockDisplay();
+        
+        // Form submit handler - ensure line_id is filled and serialize spare parts
         const form = document.querySelector('form');
         if (form) {
             form.addEventListener('submit', function(e) {
+                // DEBUG
+                console.log('=== FORM SUBMIT DEBUG ===');
+                console.log('sparePartsList global:', sparePartsList);
+                
                 const lineDisplaySelect = document.getElementById('line_id_display');
                 const lineHiddenInput = document.getElementById('line_id_hidden');
                 
                 if (lineDisplaySelect && lineDisplaySelect.value) {
                     lineHiddenInput.value = lineDisplaySelect.value;
                 }
+
+                // Serialize spare parts list to JSON
+                const hiddenField = document.getElementById('spare_parts_used');
+                console.log('Hidden field current value:', hiddenField.value);
+                console.log('Spare Parts List length:', sparePartsList ? sparePartsList.length : 'undefined');
+                
+                if (sparePartsList && sparePartsList.length > 0) {
+                    const jsonData = JSON.stringify(sparePartsList);
+                    console.log('JSON being sent:', jsonData);
+                    hiddenField.value = jsonData;
+                    
+                    // Show debug info on page
+                    const debugDiv = document.getElementById('debugSparePartsData');
+                    const debugContent = document.getElementById('debugSparePartsContent');
+                    debugDiv.style.display = 'block';
+                    debugContent.innerText = jsonData;
+                } else {
+                    console.log('No spare parts in list - clearing hidden field');
+                    hiddenField.value = '';
+                    document.getElementById('debugSparePartsData').style.display = 'none';
+                }
+                
+                console.log('=== END DEBUG ===');
             });
         }
     });
+
+    // ===== MULTIPLE SPARE PARTS FUNCTIONALITY =====
+    let sparePartsList = [];
+
+    function updateStockDisplay() {
+        const sparePartSelect = document.getElementById('temp_spare_part_id');
+        const stockDisplay = document.getElementById('temp_stock_display');
+        const unitDisplay = document.getElementById('temp_unit_display');
+        const addButton = document.querySelector('button[onclick="addSparePart()"]');
+        
+        if (sparePartSelect.value) {
+            const selectedOption = sparePartSelect.options[sparePartSelect.selectedIndex];
+            const stock = parseInt(selectedOption.getAttribute('data-stock')) || 0;
+            const unit = selectedOption.getAttribute('data-unit') || 'pcs';
+            
+            stockDisplay.value = stock;
+            unitDisplay.textContent = unit;
+
+            // Disable add button if stock is 0
+            if (stock === 0) {
+                addButton.disabled = true;
+                addButton.classList.add('btn-warning');
+                addButton.classList.remove('btn-primary');
+                addButton.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Stok Habis';
+            } else {
+                addButton.disabled = false;
+                addButton.classList.remove('btn-warning');
+                addButton.classList.add('btn-primary');
+                addButton.innerHTML = '<i class="bi bi-plus-lg"></i> Tambah';
+            }
+        } else {
+            stockDisplay.value = '0';
+            unitDisplay.textContent = 'pcs';
+            addButton.disabled = false;
+            addButton.classList.remove('btn-warning');
+            addButton.classList.add('btn-primary');
+            addButton.innerHTML = '<i class="bi bi-plus-lg"></i> Tambah';
+        }
+    }
+
+    function toggleSparePartsForm() {
+        const container = document.getElementById('sparePartsFormContainer');
+        container.style.display = container.style.display === 'none' ? 'block' : 'none';
+        
+        // Reset form when opened
+        if (container.style.display === 'block') {
+            document.getElementById('temp_spare_part_id').value = '';
+            document.getElementById('temp_qty_sparepart').value = '';
+            document.getElementById('temp_komentar_sparepart').value = '';
+            updateStockDisplay();
+            if (typeof jQuery !== 'undefined' && jQuery.fn.select2) {
+                jQuery('#temp_spare_part_id').val('').trigger('change');
+            }
+        }
+    }
+
+    function addSparePart() {
+        const tempSparePartId = document.getElementById('temp_spare_part_id').value;
+        const tempQty = document.getElementById('temp_qty_sparepart').value;
+        const tempKomentar = document.getElementById('temp_komentar_sparepart').value;
+        const selectedOption = document.getElementById('temp_spare_part_id').options[document.getElementById('temp_spare_part_id').selectedIndex];
+        const availableStock = parseInt(selectedOption.getAttribute('data-stock')) || 0;
+
+        // Validation
+        if (!tempSparePartId) {
+            alert('Silakan pilih spare part');
+            return;
+        }
+
+        // Check if stock is 0
+        if (availableStock === 0) {
+            alert('❌ Spare part ini tidak memiliki stok. Silakan pilih spare part lain.');
+            return;
+        }
+
+        if (!tempQty || parseInt(tempQty) <= 0) {
+            alert('Silakan masukkan jumlah yang valid (minimal 1)');
+            return;
+        }
+
+        // Check if quantity exceeds available stock
+        if (parseInt(tempQty) > availableStock) {
+            alert(`❌ Jumlah melebihi stok tersedia!\n\nStok tersedia: ${availableStock}\nJumlah diminta: ${tempQty}`);
+            return;
+        }
+
+        // Check if spare part already exists
+        if (sparePartsList.some(item => item.id == tempSparePartId)) {
+            alert('⚠️ Spare part ini sudah ditambahkan di list');
+            return;
+        }
+
+        // Get spare part name
+        const sparePartName = selectedOption.getAttribute('data-name');
+
+        // Add to list
+        sparePartsList.push({
+            id: tempSparePartId,
+            name: sparePartName,
+            qty: parseInt(tempQty),
+            komentar: tempKomentar,
+            availableStock: availableStock
+        });
+
+        // Update display
+        updateSparePartsDisplay();
+
+        // Reset form
+        document.getElementById('temp_spare_part_id').value = '';
+        document.getElementById('temp_qty_sparepart').value = '';
+        document.getElementById('temp_komentar_sparepart').value = '';
+        updateStockDisplay();
+        if (typeof jQuery !== 'undefined' && jQuery.fn.select2) {
+            jQuery('#temp_spare_part_id').val('').trigger('change');
+        }
+    }
+
+    function removeSparePart(index) {
+        sparePartsList.splice(index, 1);
+        updateSparePartsDisplay();
+    }
+
+    function updateSparePartsDisplay() {
+        const tableContainer = document.getElementById('sparePartsTableContainer');
+        const emptyMessage = document.getElementById('sparePartsEmpty');
+        const tableBody = document.getElementById('sparePartsTable');
+        const hiddenField = document.getElementById('spare_parts_used');
+
+        if (sparePartsList.length === 0) {
+            tableContainer.style.display = 'none';
+            emptyMessage.style.display = 'block';
+            hiddenField.value = '';
+        } else {
+            tableContainer.style.display = 'block';
+            emptyMessage.style.display = 'none';
+
+            // Build table rows
+            tableBody.innerHTML = sparePartsList.map((item, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td><strong>${item.name}</strong></td>
+                    <td class="text-center"><span class="badge bg-info">${item.qty}</span></td>
+                    <td><small class="text-muted">${item.komentar || '-'}</small></td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-danger" onclick="removeSparePart(${index})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Update hidden field with JSON data (remove availableStock before storing)
+            const dataToStore = sparePartsList.map(item => ({
+                id: item.id,
+                name: item.name,
+                qty: item.qty,
+                komentar: item.komentar
+            }));
+            hiddenField.value = JSON.stringify(dataToStore);
+            console.log('Hidden field updated with:', hiddenField.value);
+        }
+    }
 </script>
 @endsection
 

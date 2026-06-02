@@ -12,6 +12,33 @@ use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 
+/**
+ * LaporanHarianImport - Import Daily Reports dari Excel
+ * 
+ * Format Excel yang diperlukan dengan header row:
+ * - tanggal_laporan* (required): Format D/M/Y, Y-M-D, atau D-M-Y. Contoh: 01/06/2026
+ * - machine_name: Nama mesin (harus ada di database)
+ * - line_name: Nama line/departemen (harus ada di database)
+ * - line_status: 'on' atau 'off' (default: 'on'). Optional variations: yes/no, true/false, 1/0, ya/tidak, hidup/mati
+ * - spare_part_name: Nama spare part (harus ada di database)
+ * - qty_spare_part: Jumlah spare part yang digunakan (numeric)
+ * - spare_part_notes: Komentar untuk spare part
+ * - jenis_pekerjaan: 'corrective', 'preventive', atau 'change over product'
+ * - scope: 'Electrical', 'Mechanical', 'Utility', atau 'Building'
+ * - start_time: Waktu mulai (format HH:MM atau HH:MM:SS)
+ * - end_time: Waktu selesai (format HH:MM atau HH:MM:SS)
+ * - downtime_min: Durasi downtime dalam menit (numeric)
+ * - notes: Catatan/deskripsi pekerjaan
+ * - status: 'completed' atau 'pending' (default: 'completed')
+ * - report_type: 'daily', 'weekly', atau 'monthly' (default: 'daily')
+ * 
+ * * = Required field
+ * 
+ * Catatan:
+ * - Downtime otomatis dihitung dari start_time dan end_time untuk jenis pekerjaan
+ *   corrective, preventive, dan change over product
+ * - Jika tidak ada start_time/end_time, gunakan nilai downtime_min dari Excel
+ */
 class LaporanHarianImport implements ToModel, WithHeadingRow, WithValidation
 {
     /**
@@ -123,6 +150,7 @@ class LaporanHarianImport implements ToModel, WithHeadingRow, WithValidation
             'spare_part_id' => $sparePart ? $sparePart->id : null,
             'mesin_name' => trim($row['machine_name'] ?? ''),
             'line' => trim($row['line_name'] ?? ''),
+            'line_status' => $this->parseLineStatus($row['line_status'] ?? 'on'),
             'catatan' => trim($row['notes'] ?? ''),
             'sparepart' => trim($row['spare_part_name'] ?? ''),
             'qty_sparepart' => !empty($row['qty_spare_part']) ? (int)$row['qty_spare_part'] : 0,
@@ -146,6 +174,7 @@ class LaporanHarianImport implements ToModel, WithHeadingRow, WithValidation
             'tanggal_laporan' => 'required|string',
             'machine_name' => 'nullable|string|max:255',
             'line_name' => 'nullable|string|max:255',
+            'line_status' => 'nullable|in:on,off',
             'spare_part_name' => 'nullable|string|max:255',
             'qty_spare_part' => 'nullable|numeric|min:0',
             'jenis_pekerjaan' => 'nullable|in:preventive,corrective,change over product',
@@ -158,6 +187,35 @@ class LaporanHarianImport implements ToModel, WithHeadingRow, WithValidation
             'end_time' => 'nullable|string',
             'downtime_min' => 'nullable|numeric|min:0',
         ];
+    }
+
+    /**
+     * Parse line status dari berbagai format Excel
+     * @param $statusValue - nilai status dari Excel
+     * @return string - 'on' atau 'off'
+     */
+    private function parseLineStatus($statusValue)
+    {
+        if (empty($statusValue)) {
+            return 'on';
+        }
+
+        $statusValue = strtolower(trim((string)$statusValue));
+        
+        // Normalize berbagai format
+        $offVariations = ['off', '0', 'no', 'false', 'tidak', 'mati'];
+        $onVariations = ['on', '1', 'yes', 'true', 'ya', 'hidup'];
+        
+        if (in_array($statusValue, $offVariations)) {
+            return 'off';
+        }
+        
+        if (in_array($statusValue, $onVariations)) {
+            return 'on';
+        }
+        
+        // Default ke 'on' jika tidak dikenali
+        return 'on';
     }
 
     /**

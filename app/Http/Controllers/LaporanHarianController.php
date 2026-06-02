@@ -134,12 +134,22 @@ class LaporanHarianController extends Controller
             ->limit(10)
             ->get();
         
-        // Top 7 Breakdown by Line
-        $topBreakdownLine = $baseQuery()->select('line', DB::raw('COUNT(*) as breakdown_count'))
+        // All Breakdown by Line (showing all lines including those with 0 breakdown count)
+        $allLines = Line::get();
+        $breakdownByLine = $baseQuery()
+            ->select('line', DB::raw('COUNT(*) as breakdown_count'))
             ->groupBy('line')
-            ->orderByDesc('breakdown_count')
-            ->limit(7)
-            ->get();
+            ->get()
+            ->keyBy('line');
+        
+        // Combine all lines with breakdown data (including 0 counts)
+        $topBreakdownLine = $allLines->map(function($line) use ($breakdownByLine) {
+            $breakdown = $breakdownByLine->get($line->name);
+            return (object)[
+                'line' => $line->name,
+                'breakdown_count' => $breakdown ? $breakdown->breakdown_count : 0
+            ];
+        })->sortByDesc('breakdown_count');
         
         // Top 7 Breakdown by Catatan
         $topBreakdownCatatan = $baseQuery()->select('catatan', DB::raw('COUNT(*) as breakdown_count'))
@@ -201,6 +211,11 @@ class LaporanHarianController extends Controller
         $topReliableMachines = array_slice($mtbfData, 0, 5);
         $worstMachines = array_slice(array_reverse($mtbfData), 0, 5);
 
+        // Get downtime by scope (Electrical, Mechanical, Utility, Building)
+        $downtimeByScope = $this->getDowntimeByScope($tahun, $bulan, function() use ($baseQuery) {
+            return $baseQuery();
+        });
+
         return view('laporan.index', compact(
             'totalLaporan',
             'totalDowntime',
@@ -227,7 +242,83 @@ class LaporanHarianController extends Controller
             'allLines',
             'mtbfData',
             'topReliableMachines',
-            'worstMachines'
+            'worstMachines',
+            'downtimeByScope'
+        ));
+    }
+
+    /**
+     * Display a simple list of laporan for the current user
+     */
+    public function list(Request $request)
+    {
+        // Cek permission
+        if (!Auth::user()->can('view_own_laporan')) {
+            abort(403, 'Unauthorized');
+        }
+
+        // Get filter parameters
+        $bulan = $request->input('bulan');
+        $tahun = $request->input('tahun') ?? now()->year;
+        $mesin = $request->input('mesin');
+        $line = $request->input('line');
+        $search = $request->input('search');
+
+        // Build query
+        $query = LaporanHarian::query();
+
+        // Filter by user (non-admin users only see their own)
+        if (!Auth::user()->hasRole('admin')) {
+            $query->where('user_id', Auth::id());
+        }
+
+        // Apply filters
+        if ($bulan) {
+            $query->whereMonth('tanggal_laporan', $bulan);
+        }
+        if ($tahun) {
+            $query->whereYear('tanggal_laporan', $tahun);
+        }
+        if ($mesin) {
+            $query->where('mesin_name', $mesin);
+        }
+        if ($line) {
+            $query->where('line', $line);
+        }
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('mesin_name', 'like', "%{$search}%")
+                  ->orWhere('catatan', 'like', "%{$search}%")
+                  ->orWhere('line', 'like', "%{$search}%");
+            });
+        }
+
+        // Get unique values for filters
+        $allMesins = LaporanHarian::distinct()->pluck('mesin_name')->sort();
+        $allLines = LaporanHarian::distinct()->pluck('line')->sort();
+        
+        // Get months list
+        $bulanList = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+
+        // Paginate results
+        $laporan = $query->orderBy('tanggal_laporan', 'desc')
+                         ->paginate(20)
+                         ->appends($request->query());
+
+        return view('laporan.list', compact(
+            'laporan',
+            'allMesins',
+            'allLines',
+            'bulanList',
+            'bulan',
+            'tahun',
+            'mesin',
+            'line',
+            'search'
         ));
     }
 
@@ -273,6 +364,7 @@ class LaporanHarianController extends Controller
             'spare_part_id' => 'nullable|integer|exists:spare_parts,id',
             'qty_sparepart' => 'numeric|min:0',
             'komentar_sparepart' => 'nullable|string',
+            'spare_parts_used' => 'nullable|string',
             'jenis_pekerjaan' => 'required|in:corrective,preventive,change over product,modifikasi,utility',
             'scope' => 'required|in:Electrik,Mekanik,Utility,Building',
             'downtime_min' => 'integer|min:0',
@@ -314,18 +406,111 @@ class LaporanHarianController extends Controller
             $validated['downtime_min'] = 0;
         }
         
-        // Kurangi stok spare part jika ada
-        if ($validated['spare_part_id'] && isset($validated['qty_sparepart']) && $validated['qty_sparepart'] > 0) {
+        // Handle multiple spare parts (new feature)
+        if (!empty($validated['spare_parts_used'])) {
+            \Log::info('==== SPARE PARTS PROCESSING START ====');
+            \Log::info('Received spare_parts_used value:', ['value' => $validated['spare_parts_used']]);
+            
+            try {
+                $sparePartsList = json_decode($validated['spare_parts_used'], true);
+                \Log::info('Decoded spare parts list:', ['decoded' => $sparePartsList]);
+                
+                if (is_array($sparePartsList) && !empty($sparePartsList)) {
+                    // Update stock for each spare part
+                    foreach ($sparePartsList as $index => $sparePartData) {
+                        \Log::info("Processing spare part #{$index}:", [
+                            'id' => $sparePartData['id'],
+                            'name' => $sparePartData['name'] ?? 'N/A',
+                            'qty' => $sparePartData['qty']
+                        ]);
+                        
+                        $sparePart = SparePart::find($sparePartData['id']);
+                        \Log::info("SparePart found:", [
+                            'found' => $sparePart ? 'YES' : 'NO',
+                            'current_stock' => $sparePart ? $sparePart->stock : null,
+                            'name' => $sparePart ? $sparePart->name : null
+                        ]);
+                        
+                        if ($sparePart) {
+                            $oldStock = $sparePart->stock;
+                            $newStock = $oldStock - $sparePartData['qty'];
+                            
+                            \Log::info("Stock calculation:", [
+                                'old_stock' => $oldStock,
+                                'qty_to_reduce' => $sparePartData['qty'],
+                                'new_stock' => $newStock
+                            ]);
+                            
+                            if ($newStock < 0) {
+                                \Log::warning("Stock insufficient for {$sparePart->name}");
+                                return redirect()->back()
+                                    ->withErrors(['spare_parts_used' => "Stok {$sparePart->name} tidak cukup! Stok tersedia: {$oldStock}"])
+                                    ->withInput();
+                            }
+                            
+                            // Direct update using raw query for debugging
+                            $updated = $sparePart->update(['stock' => $newStock]);
+                            
+                            \Log::info("Update result:", [
+                                'updated' => $updated ? 'YES' : 'NO',
+                                'spare_part_id' => $sparePart->id,
+                                'new_stock' => $newStock
+                            ]);
+                            
+                            // Verify the update
+                            $sparePart->refresh();
+                            \Log::info("After refresh:", [
+                                'stock' => $sparePart->stock
+                            ]);
+                        }
+                    }
+                    
+                    // Set first spare part for backward compatibility
+                    if (isset($sparePartsList[0])) {
+                        $validated['spare_part_id'] = $sparePartsList[0]['id'];
+                        $validated['qty_sparepart'] = $sparePartsList[0]['qty'];
+                        $validated['komentar_sparepart'] = $sparePartsList[0]['komentar'] ?? '';
+                    }
+                } else {
+                    \Log::warning('Decoded data is not array or is empty');
+                }
+            } catch (\Exception $e) {
+                \Log::error('Error processing spare parts', [
+                    'exception' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                return redirect()->back()
+                    ->withErrors(['spare_parts_used' => 'Error processing spare parts: ' . $e->getMessage()])
+                    ->withInput();
+            }
+            \Log::info('==== SPARE PARTS PROCESSING END ====');
+        }
+        // Handle single spare part (backward compatibility)
+        else if ((isset($validated['spare_part_id']) ? $validated['spare_part_id'] : null) && isset($validated['qty_sparepart']) && $validated['qty_sparepart'] > 0) {
+            \Log::info('Processing single spare part (backward compatibility)');
             $sparePart = SparePart::find($validated['spare_part_id']);
+            
             if ($sparePart) {
-                $newStock = $sparePart->stock - $validated['qty_sparepart'];
+                $oldStock = $sparePart->stock;
+                $newStock = $oldStock - $validated['qty_sparepart'];
+                
                 if ($newStock < 0) {
                     return redirect()->back()
-                        ->withErrors(['qty_sparepart' => "Stok spare part tidak cukup! Stok tersedia: {$sparePart->stock}"])
+                        ->withErrors(['qty_sparepart' => "Stok spare part tidak cukup! Stok tersedia: {$oldStock}"])
                         ->withInput();
                 }
+                
                 $sparePart->update(['stock' => $newStock]);
+                \Log::info('Single spare part stock updated', [
+                    'spare_part' => $sparePart->name,
+                    'old_stock' => $oldStock,
+                    'new_stock' => $newStock
+                ]);
             }
+        } else {
+            \Log::info('No spare parts to process - both multiple and single are empty');
         }
         
         LaporanHarian::create($validated);
@@ -904,6 +1089,7 @@ class LaporanHarianController extends Controller
             'tanggal_laporan',
             'machine_name',
             'line_name',
+            'line_status',
             'jenis_pekerjaan',
             'scope',
             'notes',
@@ -927,57 +1113,75 @@ class LaporanHarianController extends Controller
             'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '4472C4']],
             'alignment' => ['horizontal' => 'center', 'vertical' => 'center', 'wrapText' => true],
         ];
-        $sheet->getStyle('A1:N1')->applyFromArray($headerStyle);
+        $sheet->getStyle('A1:O1')->applyFromArray($headerStyle);
 
         // Set column width
         $sheet->getColumnDimension('A')->setWidth(15);
         $sheet->getColumnDimension('B')->setWidth(25);
         $sheet->getColumnDimension('C')->setWidth(20);
-        $sheet->getColumnDimension('D')->setWidth(18);
-        $sheet->getColumnDimension('E')->setWidth(20);
-        $sheet->getColumnDimension('F')->setWidth(20);
-        $sheet->getColumnDimension('G')->setWidth(20);
-        $sheet->getColumnDimension('H')->setWidth(15);
-        $sheet->getColumnDimension('I')->setWidth(20);
-        $sheet->getColumnDimension('J')->setWidth(12);
-        $sheet->getColumnDimension('K')->setWidth(12);
-        $sheet->getColumnDimension('L')->setWidth(12);
-        $sheet->getColumnDimension('M')->setWidth(12);
-        $sheet->getColumnDimension('N')->setWidth(12);
+        $sheet->getColumnDimension('D')->setWidth(12);  // line_status
+        $sheet->getColumnDimension('E')->setWidth(18);  // jenis_pekerjaan
+        $sheet->getColumnDimension('F')->setWidth(20);  // scope
+        $sheet->getColumnDimension('G')->setWidth(20);  // notes
+        $sheet->getColumnDimension('H')->setWidth(20);  // spare_part_name
+        $sheet->getColumnDimension('I')->setWidth(15);  // qty_spare_part
+        $sheet->getColumnDimension('J')->setWidth(20);  // spare_part_notes
+        $sheet->getColumnDimension('K')->setWidth(12);  // start_time
+        $sheet->getColumnDimension('L')->setWidth(12);  // end_time
+        $sheet->getColumnDimension('M')->setWidth(12);  // downtime_min
+        $sheet->getColumnDimension('N')->setWidth(12);  // status
+        $sheet->getColumnDimension('O')->setWidth(12);  // report_type
 
-        // Add sample data
-        $sheet->setCellValue('A2', '15/02/2026');
+        // Add sample data - Row 2: Preventive maintenance
+        $sheet->setCellValue('A2', '15/06/2026');
         $sheet->setCellValue('B2', 'Mesin Produksi A1');
         $sheet->setCellValue('C2', 'Line A');
-        $sheet->setCellValue('D2', 'preventive');
-        $sheet->setCellValue('E2', 'Pembersihan dan pelumasan');
-        $sheet->setCellValue('F2', 'Rutin harian');
-        $sheet->setCellValue('G2', '');
+        $sheet->setCellValue('D2', 'on');  // line_status - line ini dihitung downtime-nya
+        $sheet->setCellValue('E2', 'preventive');
+        $sheet->setCellValue('F2', 'Mechanical');
+        $sheet->setCellValue('G2', 'Rutin harian - Pembersihan dan pelumasan');
         $sheet->setCellValue('H2', '');
         $sheet->setCellValue('I2', '');
         $sheet->setCellValue('J2', '');
         $sheet->setCellValue('K2', '');
         $sheet->setCellValue('L2', '');
-        $sheet->setCellValue('M2', 'completed');
-        $sheet->setCellValue('N2', 'daily');
+        $sheet->setCellValue('M2', '');
+        $sheet->setCellValue('N2', 'completed');
+        $sheet->setCellValue('O2', 'daily');
 
-        $sheet->setCellValue('A3', '14/02/2026');
+        // Add sample data - Row 3: Corrective maintenance with downtime
+        $sheet->setCellValue('A3', '14/06/2026');
         $sheet->setCellValue('B3', 'Mesin Produksi B1');
         $sheet->setCellValue('C3', 'Line B');
-        $sheet->setCellValue('D3', 'corrective');
-        $sheet->setCellValue('E3', 'Perbaikan bearing');
-        $sheet->setCellValue('F3', 'Bearing aus, diganti');
-        $sheet->setCellValue('G3', 'Bearing 6203');
-        $sheet->setCellValue('H3', '2');
-        $sheet->setCellValue('I3', 'Grade A');
-        $sheet->setCellValue('J3', '08:30');
-        $sheet->setCellValue('K3', '10:15');
-        $sheet->setCellValue('L3', '105');
-        $sheet->setCellValue('M3', 'completed');
-        $sheet->setCellValue('N3', 'daily');
+        $sheet->setCellValue('D3', 'on');  // line_status - line ini dihitung downtime-nya
+        $sheet->setCellValue('E3', 'corrective');
+        $sheet->setCellValue('F3', 'Mechanical');
+        $sheet->setCellValue('G3', 'Perbaikan bearing - bearing aus, diganti');
+        $sheet->setCellValue('H3', 'Bearing 6203');
+        $sheet->setCellValue('I3', '2');
+        $sheet->setCellValue('J3', 'Grade A, kondisi normal');
+        $sheet->setCellValue('K3', '08:30');
+        $sheet->setCellValue('L3', '10:15');
+        $sheet->setCellValue('M3', '105');  // minutes
+        $sheet->setCellValue('N3', 'completed');
+        $sheet->setCellValue('O3', 'daily');
 
-        // Add data validation hints in row 1 (comment)
-        $sheet->getCell('D1')->setValue('jenis_pekerjaan (preventive/corrective)');
+        // Add sample data - Row 4: Line status OFF (tidak dihitung downtime)
+        $sheet->setCellValue('A4', '13/06/2026');
+        $sheet->setCellValue('B4', 'Mesin Utility');
+        $sheet->setCellValue('C4', 'Utility');
+        $sheet->setCellValue('D4', 'off');  // line_status - line ini TIDAK dihitung downtime-nya
+        $sheet->setCellValue('E4', 'preventive');
+        $sheet->setCellValue('F4', 'Utility');
+        $sheet->setCellValue('G4', 'Maintenance mesin utility - tidak untuk production');
+        $sheet->setCellValue('H4', '');
+        $sheet->setCellValue('I4', '');
+        $sheet->setCellValue('J4', '');
+        $sheet->setCellValue('K4', '');
+        $sheet->setCellValue('L4', '');
+        $sheet->setCellValue('M4', '');
+        $sheet->setCellValue('N4', 'completed');
+        $sheet->setCellValue('O4', 'daily');
 
         $writer = new Xlsx($spreadsheet);
         $fileName = 'template_import_laporan_' . date('Y-m-d_H-i-s') . '.xlsx';
@@ -1008,5 +1212,37 @@ class LaporanHarianController extends Controller
             'line_name' => $machine->line->name,
             'machine_name' => $machine->name
         ]);
+    }
+
+    private function getDowntimeByScope($tahun, $bulan, $baseQueryCallback = null)
+    {
+        if ($baseQueryCallback === null) {
+            // Default query for given month/year
+            $baseQueryCallback = function() use ($tahun, $bulan) {
+                return LaporanHarian::whereYear('tanggal_laporan', $tahun)
+                    ->whereMonth('tanggal_laporan', $bulan);
+            };
+        }
+
+        $scopes = ['Electrik', 'Mekanik', 'Utility', 'Building'];
+        $downtimeByScope = [];
+
+        foreach ($scopes as $scope) {
+            $query = $baseQueryCallback();
+            $downtimeMinutes = $query->where('scope', $scope)
+                ->whereIn('jenis_pekerjaan', ['corrective', 'preventive', 'change over product'])
+                ->sum('downtime_min') ?? 0;
+            
+            // Convert minutes to hours
+            $downtimeHours = round($downtimeMinutes / 60, 2);
+            
+            $downtimeByScope[] = [
+                'scope' => $scope,
+                'downtime_hours' => $downtimeHours,
+                'downtime_minutes' => $downtimeMinutes
+            ];
+        }
+
+        return $downtimeByScope;
     }
 }

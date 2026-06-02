@@ -21,12 +21,14 @@ class LaporanHarian extends Model
         'sparepart',
         'qty_sparepart',
         'komentar_sparepart',
+        'spare_parts_used',
         'status',
         'jenis_pekerjaan',
         'scope',
         'start_time',
         'end_time',
         'downtime_min',
+        'planned_time_minutes',
         'tipe_laporan',
         'tanggal_laporan',
     ];
@@ -35,6 +37,8 @@ class LaporanHarian extends Model
         'start_time' => 'datetime',
         'end_time' => 'datetime',
         'tanggal_laporan' => 'date',
+        'planned_time_minutes' => 'integer',
+        'spare_parts_used' => 'collection',
     ];
 
     public function user(): BelongsTo

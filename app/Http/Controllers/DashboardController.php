@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\LaporanHarian;
 use App\Models\Machine;
+use App\Models\Line;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -91,7 +92,7 @@ class DashboardController extends Controller
             };
         }
 
-        $scopes = ['electrical', 'mechanical', 'utility', 'building'];
+        $scopes = ['Electrik', 'Mekanik', 'Utility', 'Building'];
         $downtimeByScope = [];
 
         foreach ($scopes as $scope) {
@@ -104,7 +105,7 @@ class DashboardController extends Controller
             $downtimeHours = round($downtimeMinutes / 60, 2);
             
             $downtimeByScope[] = [
-                'scope' => ucfirst($scope),
+                'scope' => $scope,
                 'downtime_hours' => $downtimeHours,
                 'downtime_minutes' => $downtimeMinutes
             ];
@@ -154,6 +155,13 @@ class DashboardController extends Controller
                 $q->where('line', $line);
             }
 
+            // Filter by line_status = 'on' (exclude 'off' lines that don't count downtime)
+            // Include null values for backward compatibility with old records
+            $q->where(function($subQuery) {
+                $subQuery->where('line_status', 'on')
+                         ->orWhereNull('line_status');
+            });
+
             return $q;
         };
 
@@ -186,13 +194,21 @@ class DashboardController extends Controller
             ->get();
         
         // Machine Performance Metrics
-        // Calculate Planned time from database if available, otherwise calculate automatically
-        // REVISION: Planned Time can be set manually by administrator via admin interface
+        // Calculate Planned time from multiple sources in priority order:
+        // 1. Sum from individual laporan_harian.planned_time_minutes (operator input)
+        // 2. Global PlannedTime table (PPIC/admin input)
+        // 3. Fallback: auto-calculation from days × hours × machines
         
         $totalPlannedTime = 0;
         
-        if ($showAllTime) {
-            // For all-time data, sum all planned times from records, or calculate if none exist
+        // First, try to get planned time from individual reports (operator input per laporan)
+        $plannedTimeFromReports = $baseQuery()->sum('planned_time_minutes') ?? 0;
+        
+        if ($plannedTimeFromReports > 0) {
+            // Use sum from individual laporan reports
+            $totalPlannedTime = $plannedTimeFromReports;
+        } else if ($showAllTime) {
+            // For all-time data, try global PlannedTime table
             $plannedTimes = \App\Models\PlannedTime::all()->sum('planned_time_minutes');
             if ($plannedTimes > 0) {
                 $totalPlannedTime = $plannedTimes;
@@ -218,9 +234,9 @@ class DashboardController extends Controller
                 }
             }
         } else {
-            // For date range or specific month, calculate planned time
+            // For date range or specific month, try global PlannedTime table first
             if ($filterMode === 'date_range') {
-                // Calculate based on date range
+                // For date range, fallback to calculation
                 $startCarbon = \Carbon\Carbon::parse($dariTanggal);
                 $endCarbon = \Carbon\Carbon::parse($sampaiTanggal);
                 $totalDays = $endCarbon->diffInDays($startCarbon) + 1;
@@ -235,13 +251,13 @@ class DashboardController extends Controller
                 // Formula: days × 24 hours × 60 minutes × number of active machines
                 $totalPlannedTime = $totalDays * 24 * 60 * $activeMachinesCount;
             } else {
-                // For specific month, check database first, then fallback to calculation
+                // For specific month, check global PlannedTime database
                 $plannedTimeRecord = \App\Models\PlannedTime::where('year', $tahun)
                     ->where('month', $bulan)
                     ->first();
                 
                 if ($plannedTimeRecord) {
-                    // Use manually entered planned time
+                    // Use manually entered planned time from PPIC
                     $totalPlannedTime = $plannedTimeRecord->planned_time_minutes;
                 } else {
                     // Fallback: calculate from days in month and active machines
@@ -293,14 +309,25 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
         
-        // Top 7 Breakdown by Line (with downtime) - only count LINE ON
-        $topBreakdownLine = $baseQuery()->where('line_status', 'on')->select('line', 
+        // All Breakdown by Line (showing all lines including those with 0 breakdown count)
+        $allLines = Line::where('status', 'on')->get();
+        $breakdownByLine = $baseQuery()->where('line_status', 'on')
+            ->select('line', 
                 DB::raw('COUNT(*) as breakdown_count'),
                 DB::raw('SUM(downtime_min) as total_downtime_min'))
             ->groupBy('line')
-            ->orderByDesc('breakdown_count')
-            ->limit(7)
-            ->get();
+            ->get()
+            ->keyBy('line');
+        
+        // Combine all lines with breakdown data (including 0 counts)
+        $topBreakdownLine = $allLines->map(function($line) use ($breakdownByLine) {
+            $breakdown = $breakdownByLine->get($line->name);
+            return (object)[
+                'line' => $line->name,
+                'breakdown_count' => $breakdown ? $breakdown->breakdown_count : 0,
+                'total_downtime_min' => $breakdown ? $breakdown->total_downtime_min : 0
+            ];
+        })->sortByDesc('breakdown_count');
         
         // Top 7 Breakdown by Catatan (Jenis Kerusakan)
         $topBreakdownCatatan = $baseQuery()->select('catatan', DB::raw('COUNT(*) as breakdown_count'))
@@ -512,14 +539,25 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
         
-        // Top 7 Breakdown by Line (with downtime)
-        $topBreakdownLine = $baseQuery()->select('line', 
+        // All Breakdown by Line (showing all lines including those with 0 breakdown count)
+        $allLines = Line::get();
+        $breakdownByLine = $baseQuery()
+            ->select('line', 
                 DB::raw('COUNT(*) as breakdown_count'),
                 DB::raw('SUM(downtime_min) as total_downtime_min'))
             ->groupBy('line')
-            ->orderByDesc('breakdown_count')
-            ->limit(7)
-            ->get();
+            ->get()
+            ->keyBy('line');
+        
+        // Combine all lines with breakdown data (including 0 counts)
+        $topBreakdownLine = $allLines->map(function($line) use ($breakdownByLine) {
+            $breakdown = $breakdownByLine->get($line->name);
+            return (object)[
+                'line' => $line->name,
+                'breakdown_count' => $breakdown ? $breakdown->breakdown_count : 0,
+                'total_downtime_min' => $breakdown ? $breakdown->total_downtime_min : 0
+            ];
+        })->sortByDesc('breakdown_count');
         
         // Top 7 Breakdown by Catatan (Jenis Kerusakan)
         $topBreakdownCatatan = $baseQuery()->select('catatan', DB::raw('COUNT(*) as breakdown_count'))

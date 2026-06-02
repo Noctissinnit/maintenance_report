@@ -9,12 +9,12 @@ use Illuminate\Support\Facades\Auth;
 class PlannedTimeController extends Controller
 {
     /**
-     * Check if user is admin
+     * Check if user has permission to manage planned times
      */
     private function checkAdminAuthorization()
     {
-        if (!Auth::user()->hasRole('admin')) {
-            abort(403, 'Unauthorized. Only admins can manage planned times.');
+        if (!Auth::user()->can('manage_planned_times')) {
+            abort(403, 'Unauthorized. Only admins and department heads can manage planned times.');
         }
     }
 

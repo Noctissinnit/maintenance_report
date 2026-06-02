@@ -39,6 +39,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/laporan/import', [LaporanHarianController::class, 'import'])->name('laporan.import');
     Route::get('/laporan/template', [LaporanHarianController::class, 'template'])->name('laporan.template');
     Route::delete('/laporan/clear-all', [LaporanHarianController::class, 'clearAll'])->name('laporan.clear-all');
+    Route::get('/laporan/list', [LaporanHarianController::class, 'list'])->name('laporan.list');
     Route::get('/laporan', [LaporanHarianController::class, 'index'])->name('laporan.index');
     Route::get('/laporan/create', [LaporanHarianController::class, 'create'])->name('laporan.create');
     Route::post('/laporan', [LaporanHarianController::class, 'store'])->name('laporan.store');
@@ -103,8 +104,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/spare-parts/monitoring', [SparePartController::class, 'monitoring'])->name('spare-parts.monitoring');
     });
     
-    // Planned Time Management (Admin only)
-    Route::middleware(['can:manage_machines'])->group(function () {
+    // Planned Time Management (Admin & Department Head - PPIC)
+    Route::middleware(['can:manage_planned_times'])->group(function () {
         Route::resource('planned-times', PlannedTimeController::class);
     });
     

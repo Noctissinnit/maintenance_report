@@ -709,6 +709,9 @@
                 <a href="{{ route('dashboard') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'dashboard') active @endif">
                     <i class="bi bi-speedometer2"></i> Dashboard
                 </a>
+                {{-- <a href="{{ route('laporan.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'laporan.index') active @endif">
+                    <i class="bi bi-file-earmark-text"></i> Dashboard Laporan
+                </a> --}}
             @endif
 
             {{-- Dashboard untuk Operator --}}
@@ -722,9 +725,10 @@
             {{-- Laporan untuk Operator, Supervisor, dan Admin --}}
             @if(Auth::user()->hasAnyRole(['operator', 'supervisor','admin']))
                 <div class="sidebar-nav-title">Laporan</div>
-                <a href="{{ route('laporan.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'laporan.index') active @endif">
-                    <i class="bi bi-file-earmark-text"></i> Daftar Laporan
+                <a href="{{ route('laporan.list') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'laporan.list') active @endif">
+                    <i class="bi bi-list-ul"></i> Laporan Saya
                 </a>
+              
                 <a href="{{ route('laporan.create') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'laporan.create') active @endif">
                     <i class="bi bi-plus-circle"></i> Input Laporan
                 </a>
@@ -735,6 +739,14 @@
                 <div class="sidebar-nav-title">Analytics</div>
                 <a href="{{ route('mtbf.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'mtbf.index' || Route::current()->getName() === 'mtbf.show') active @endif">
                     <i class="bi bi-speedometer2"></i> MTBF Analysis
+                </a>
+            @endif
+
+            {{-- Planned Time Management untuk Department Head (PPIC) --}}
+            @if(Auth::user()->hasRole('department_head'))
+                <div class="sidebar-nav-title">PPIC Planning</div>
+                <a href="{{ route('planned-times.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'planned-times.index' || Route::current()->getName() === 'planned-times.create' || Route::current()->getName() === 'planned-times.edit') active @endif">
+                    <i class="bi bi-calendar-event"></i> Planned Time
                 </a>
             @endif
 

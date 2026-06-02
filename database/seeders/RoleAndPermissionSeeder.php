@@ -38,6 +38,9 @@ class RoleAndPermissionSeeder extends Seeder
             
             // Spare part management permissions
             'manage_spare_parts',
+            
+            // Planned time management (PPIC/Department Head)
+            'manage_planned_times',
         ];
 
         foreach ($permissions as $permission) {
@@ -60,6 +63,7 @@ class RoleAndPermissionSeeder extends Seeder
             'manage_employees',
             'manage_machines',
             'manage_spare_parts',
+            'manage_planned_times',
             'view_department_dashboard',
             'view_own_laporan',
             'create_laporan',
@@ -85,12 +89,13 @@ class RoleAndPermissionSeeder extends Seeder
             'view_all_laporan',
         ]);
 
-        // Assign permissions to department_head (monitor semua dashboard)
+        // Assign permissions to department_head (monitor semua dashboard + manage planned times)
         $departmentHeadRole->syncPermissions([
             'view_dashboard',
             'view_all_laporan',
             'view_department_dashboard',
             'view_own_laporan',
+            'manage_planned_times',
         ]);
 
         // Final cache reset
