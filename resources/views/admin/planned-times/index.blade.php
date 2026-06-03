@@ -67,8 +67,8 @@
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th>Year</th>
-                        <th>Month</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
                         <th>Planned Time</th>
                         <th>Hours</th>
                         <th>Description</th>
@@ -81,17 +81,10 @@
                     @forelse($plannedTimes as $record)
                         <tr>
                             <td>
-                                <strong>{{ $record->year }}</strong>
+                                <strong>{{ $record->start_date?->format('Y-m-d') ?? '-' }}</strong>
                             </td>
                             <td>
-                                @php
-                                    $months = [
-                                        1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
-                                        5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
-                                        9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
-                                    ];
-                                @endphp
-                                {{ $months[$record->month] }}
+                                <strong>{{ $record->end_date?->format('Y-m-d') ?? '-' }}</strong>
                             </td>
                             <td>
                                 <strong class="text-primary">{{ number_format($record->planned_time_minutes) }}</strong>

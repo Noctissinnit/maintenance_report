@@ -9,6 +9,8 @@ class PlannedTime extends Model
     protected $fillable = [
         'year',
         'month',
+        'start_date',
+        'end_date',
         'planned_time_minutes',
         'description',
         'created_by',
@@ -18,6 +20,8 @@ class PlannedTime extends Model
         'year' => 'integer',
         'month' => 'integer',
         'planned_time_minutes' => 'integer',
+        'start_date' => 'date',
+        'end_date' => 'date',
     ];
 
     /**

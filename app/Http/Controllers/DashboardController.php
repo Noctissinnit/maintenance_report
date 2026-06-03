@@ -193,22 +193,17 @@ class DashboardController extends Controller
             ->groupBy(DB::raw('DATE(tanggal_laporan)'))
             ->get();
         
-        // Machine Performance Metrics
-        // Calculate Planned time from multiple sources in priority order:
-        // 1. Sum from individual laporan_harian.planned_time_minutes (operator input)
-        // 2. Global PlannedTime table (PPIC/admin input)
-        // 3. Fallback: auto-calculation from days × hours × machines
         
         $totalPlannedTime = 0;
         
-        // First, try to get planned time from individual reports (operator input per laporan)
+       
         $plannedTimeFromReports = $baseQuery()->sum('planned_time_minutes') ?? 0;
         
         if ($plannedTimeFromReports > 0) {
-            // Use sum from individual laporan reports
+            
             $totalPlannedTime = $plannedTimeFromReports;
         } else if ($showAllTime) {
-            // For all-time data, try global PlannedTime table
+   
             $plannedTimes = \App\Models\PlannedTime::all()->sum('planned_time_minutes');
             if ($plannedTimes > 0) {
                 $totalPlannedTime = $plannedTimes;

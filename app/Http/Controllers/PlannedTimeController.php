@@ -78,15 +78,20 @@ class PlannedTimeController extends Controller
     {
         $this->checkAdminAuthorization();
         $validated = $request->validate([
-            'year' => 'required|integer|min:2024|max:2099',
-            'month' => 'required|integer|min:1|max:12',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
             'planned_time_minutes' => 'required|integer|min:0',
             'description' => 'nullable|string|max:255',
         ]);
 
+        // Extract year and month from start_date
+        $startDate = \Carbon\Carbon::parse($validated['start_date']);
+        $year = $startDate->year;
+        $month = $startDate->month;
+
         // Check if planned time for this month/year already exists
-        $existing = PlannedTime::where('year', $validated['year'])
-            ->where('month', $validated['month'])
+        $existing = PlannedTime::where('year', $year)
+            ->where('month', $month)
             ->first();
 
         if ($existing) {
@@ -96,6 +101,8 @@ class PlannedTimeController extends Controller
         }
 
         $validated['created_by'] = Auth::id();
+        $validated['year'] = $year;
+        $validated['month'] = $month;
 
         PlannedTime::create($validated);
 
@@ -143,9 +150,16 @@ class PlannedTimeController extends Controller
     {
         $this->checkAdminAuthorization();
         $validated = $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
             'planned_time_minutes' => 'required|integer|min:0',
             'description' => 'nullable|string|max:255',
         ]);
+
+        // Extract year and month from start_date
+        $startDate = \Carbon\Carbon::parse($validated['start_date']);
+        $validated['year'] = $startDate->year;
+        $validated['month'] = $startDate->month;
 
         $plannedTime->update($validated);
 

@@ -36,17 +36,27 @@
                 @csrf
                 @method('PUT')
 
-                <!-- Year (Read-only) -->
+                <!-- Start Date -->
                 <div class="col-md-6">
-                    <label for="year" class="form-label">Year</label>
-                    <input type="text" class="form-control bg-light" value="{{ $plannedTime->year }}" readonly>
+                    <label for="start_date" class="form-label">Start Date <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control @error('start_date') is-invalid @enderror" 
+                           id="start_date" name="start_date" 
+                           value="{{ old('start_date', $plannedTime->start_date?->format('Y-m-d')) }}" required>
+                    @error('start_date')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
                 </div>
 
-                <!-- Month (Read-only) -->
+                <!-- End Date -->
                 <div class="col-md-6">
-                    <label for="month" class="form-label">Month</label>
-                    <input type="text" class="form-control bg-light" 
-                           value="{{ $months[$plannedTime->month] }} ({{ $plannedTime->month }})" readonly>
+                    <label for="end_date" class="form-label">End Date <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control @error('end_date') is-invalid @enderror" 
+                           id="end_date" name="end_date" 
+                           value="{{ old('end_date', $plannedTime->end_date?->format('Y-m-d')) }}" required>
+                    @error('end_date')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                    <small class="text-muted">End date must be equal to or after start date</small>
                 </div>
 
                 <!-- Planned Time in Minutes -->

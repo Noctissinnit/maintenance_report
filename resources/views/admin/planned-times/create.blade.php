@@ -35,30 +35,25 @@
             <form method="POST" action="{{ route('planned-times.store') }}" class="row g-3">
                 @csrf
 
-                <!-- Year -->
+                <!-- Date Range -->
                 <div class="col-md-6">
-                    <label for="year" class="form-label">Year <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control @error('year') is-invalid @enderror" 
-                           id="year" name="year" min="2024" max="2099" value="{{ old('year', now()->year) }}" required>
-                    @error('year')
+                    <label for="start_date" class="form-label">Start Date <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control @error('start_date') is-invalid @enderror" 
+                           id="start_date" name="start_date" value="{{ old('start_date') }}" required>
+                    @error('start_date')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
 
-                <!-- Month -->
+                <!-- End Date -->
                 <div class="col-md-6">
-                    <label for="month" class="form-label">Month <span class="text-danger">*</span></label>
-                    <select class="form-select @error('month') is-invalid @enderror" id="month" name="month" required>
-                        <option value="">-- Select Month --</option>
-                        @foreach($months as $number => $name)
-                            <option value="{{ $number }}" @if(old('month', now()->month) == $number) selected @endif>
-                                {{ $name }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('month')
+                    <label for="end_date" class="form-label">End Date <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control @error('end_date') is-invalid @enderror" 
+                           id="end_date" name="end_date" value="{{ old('end_date') }}" required>
+                    @error('end_date')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
+                    <small class="text-muted">End date must be equal to or after start date</small>
                 </div>
 
                 <!-- Planned Time in Minutes -->
