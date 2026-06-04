@@ -101,7 +101,7 @@
                         <button type="submit" class="btn btn-success">
                             <i class="bi bi-upload"></i> Import Data
                         </button>
-                        <a href="{{ route('laporan.index') }}" class="btn btn-secondary">
+                        <a href="{{ route('laporan.list') }}" class="btn btn-secondary">
                             <i class="bi bi-x"></i> Batal
                         </a>
                     </div>

@@ -123,14 +123,45 @@
 </div>
 
 <script>
+const activeMachinesCount = {{ $activeMachinesCount ?? 0 }};
+
+function calculateAutoPlannedTime() {
+    const startDateVal = document.getElementById('start_date').value;
+    const endDateVal = document.getElementById('end_date').value;
+    
+    if (startDateVal && endDateVal) {
+        const start = new Date(startDateVal);
+        const end = new Date(endDateVal);
+        
+        if (end >= start) {
+            // Calculate difference in days (inclusive)
+            const diffTime = Math.abs(end - start);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            
+            // Formula: Days * 24 * 60 * activeMachinesCount
+            const plannedMinutes = diffDays * 24 * 60 * activeMachinesCount;
+            document.getElementById('planned_time_minutes').value = plannedMinutes;
+            
+            updateHours();
+        }
+    }
+}
+
 function updateHours() {
     const minutes = parseInt(document.getElementById('planned_time_minutes').value) || 0;
     const hours = (minutes / 60).toFixed(2);
     document.getElementById('hours_display').value = hours;
 }
 
-// Update on load and on input change
+// Add event listeners to date inputs to trigger auto calculation
+document.getElementById('start_date').addEventListener('change', calculateAutoPlannedTime);
+document.getElementById('end_date').addEventListener('change', calculateAutoPlannedTime);
+
+// Update on load and on input change of minutes field
 document.getElementById('planned_time_minutes').addEventListener('input', updateHours);
-document.addEventListener('DOMContentLoaded', updateHours);
+document.addEventListener('DOMContentLoaded', () => {
+    calculateAutoPlannedTime(); // Auto-calculate if dates are already filled
+    updateHours();
+});
 </script>
 @endsection

@@ -149,6 +149,32 @@
             font-size: 0.95rem;
         }
         
+        /* Navbar User Dropdown */
+        .navbar-user-info {
+            cursor: pointer;
+        }
+        
+        .navbar-user-info:hover {
+            background: rgba(255, 255, 255, 0.18) !important;
+        }
+        
+        .navbar-user-info .bi-chevron-down {
+            transition: transform 0.25s ease;
+        }
+        
+        .navbar-user-info[aria-expanded="true"] .bi-chevron-down {
+            transform: rotate(180deg);
+        }
+        
+        .dropdown-menu .dropdown-item:hover {
+            background-color: #f0f2f7;
+        }
+        
+        .dropdown-menu .dropdown-item.text-danger:hover {
+            background-color: #fceded;
+        }
+
+        
         /* Sidebar Styling */
         .sidebar-wrapper {
             position: fixed;
@@ -675,24 +701,49 @@
             </a>
             
             <div class="navbar-content ms-auto">
-                <div class="navbar-user-info">
-                    <div class="navbar-user-avatar">
-                        {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
-                    </div>
-                    <div>
-                        <p class="navbar-user-name mb-0">{{ Auth::user()->name }}</p>
-                        <small style="color: rgba(255,255,255,0.7);">
-                            {{ ucfirst(Auth::user()->getRoleNames()[0] ?? 'User') }}
-                        </small>
-                    </div>
+                <div class="dropdown">
+                    <a href="#" class="navbar-user-info text-decoration-none" role="button" data-bs-toggle="dropdown" aria-expanded="false" id="navbarUserDropdown">
+                        <div class="navbar-user-avatar">
+                            {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                        </div>
+                        <div>
+                            <p class="navbar-user-name mb-0">{{ Auth::user()->name }}</p>
+                            <small style="color: rgba(255,255,255,0.7);">
+                                {{ ucfirst(str_replace('_', ' ', Auth::user()->getRoleNames()[0] ?? 'User')) }}
+                            </small>
+                        </div>
+                        <i class="bi bi-chevron-down ms-2" style="color: rgba(255,255,255,0.7); font-size: 0.75rem;"></i>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="border-radius: 0.75rem; min-width: 220px; margin-top: 0.5rem; overflow: hidden;" aria-labelledby="navbarUserDropdown">
+                        <li class="px-3 py-2" style="background: linear-gradient(135deg, #f8f9fb, #eef1f8); border-bottom: 1px solid #e8ecf1;">
+                            <div class="d-flex align-items-center gap-2">
+                                <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-color), var(--primary-light)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.85rem;">
+                                    {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                                </div>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 0.875rem; color: var(--text-dark);">{{ Auth::user()->name }}</div>
+                                    <div style="font-size: 0.75rem; color: #999;">{{ Auth::user()->email }}</div>
+                                </div>
+                            </div>
+                        </li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2 px-3" href="{{ route('profile.edit') }}" style="font-size: 0.9rem;">
+                                <i class="bi bi-person-gear" style="font-size: 1rem; color: var(--primary-color);"></i>
+                                Edit Profil
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <form action="{{ route('logout') }}" method="POST">
+                                @csrf
+                                <button type="submit" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3 text-danger" style="font-size: 0.9rem;">
+                                    <i class="bi bi-box-arrow-right" style="font-size: 1rem;"></i>
+                                    Logout
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
                 </div>
-                <form action="{{ route('logout') }}" method="POST" style="display: inline;">
-                    @csrf
-                    <button type="submit" class="btn-logout">
-                        <i class="bi bi-box-arrow-right"></i>
-                        <span>Logout</span>
-                    </button>
-                </form>
             </div>
         </div>
     </nav>

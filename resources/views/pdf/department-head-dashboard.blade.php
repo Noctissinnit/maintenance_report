@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
@@ -799,7 +799,7 @@
 
         <div class="col-50">
             <div class="card">
-                <div class="card-header">Top 7 Breakdown Per Line</div>
+                <div class="card-header">Daftar Breakdown per Line</div>
                 <div class="card-body">
                     @if(count($topBreakdownLine ?? []) > 0)
                         <table>

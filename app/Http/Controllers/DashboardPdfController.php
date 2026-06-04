@@ -126,7 +126,7 @@ class DashboardPdfController extends Controller
             ->get();
         
         // All Breakdown by Line (showing all lines including those with 0 breakdown count)
-        $allLines = Line::get();
+        $allLines = Line::where('status', 'active')->get();
         $breakdownByLine = $baseQuery()
             ->select('line', DB::raw('COUNT(*) as breakdown_count'))
             ->groupBy('line')

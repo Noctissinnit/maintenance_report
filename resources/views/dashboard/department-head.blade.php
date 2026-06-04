@@ -703,7 +703,7 @@
 
     <div class="col-md-6">
         <div class="card">
-            <div class="card-header">Top 7 Breakdown Per Line</div>
+            <div class="card-header">Daftar Breakdown per Line</div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-sm">

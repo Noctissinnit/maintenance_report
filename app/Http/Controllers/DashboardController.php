@@ -305,8 +305,8 @@ class DashboardController extends Controller
             ->get();
         
         // All Breakdown by Line (showing all lines including those with 0 breakdown count)
-        $allLines = Line::where('status', 'on')->get();
-        $breakdownByLine = $baseQuery()->where('line_status', 'on')
+        $allLines = Line::where('status', 'active')->get();
+        $breakdownByLine = $baseQuery()
             ->select('line', 
                 DB::raw('COUNT(*) as breakdown_count'),
                 DB::raw('SUM(downtime_min) as total_downtime_min'))
@@ -535,7 +535,7 @@ class DashboardController extends Controller
             ->get();
         
         // All Breakdown by Line (showing all lines including those with 0 breakdown count)
-        $allLines = Line::get();
+        $allLines = Line::where('status', 'active')->get();
         $breakdownByLine = $baseQuery()
             ->select('line', 
                 DB::raw('COUNT(*) as breakdown_count'),

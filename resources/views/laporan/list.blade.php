@@ -5,15 +5,34 @@
 @section('content')
 <div class="container-fluid">
     <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-md-8">
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-6">
             <h2><i class="bi bi-list-ul"></i> Daftar Laporan Saya</h2>
-            <p class="text-muted">Lihat semua laporan maintenance yang telah Anda inputkan</p>
+            <p class="text-muted mb-0">Lihat semua laporan maintenance yang telah Anda inputkan</p>
         </div>
-        <div class="col-md-4 text-end">
-            <a href="{{ route('laporan.create') }}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Input Laporan Baru
-            </a>
+        <div class="col-md-6 text-end">
+            <div class="d-inline-flex gap-2 align-items-center">
+                @can('create_laporan')
+                    <a href="{{ route('laporan.import-form') }}" class="btn btn-success">
+                        <i class="bi bi-file-earmark-excel"></i> Import Laporan
+                    </a>
+                @endcan
+                
+                @can('delete_laporan')
+                    <form method="POST" action="{{ route('laporan.clear-all') }}" class="d-inline"
+                          onsubmit="return confirm('Apakah Anda yakin ingin menghapus semua laporan? Tindakan ini tidak dapat dibatalkan.');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash"></i> Clear Data
+                        </button>
+                    </form>
+                @endcan
+
+                <a href="{{ route('laporan.create') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Input Laporan Baru
+                </a>
+            </div>
         </div>
     </div>
 

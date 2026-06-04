@@ -387,7 +387,7 @@
 
         <div class="dash-card">
             <div class="dash-card-header">
-                <span>Top 7 Breakdown Per Line</span>
+                <span>Daftar Breakdown per Line</span>
             </div>
             <div class="dash-card-body">
                 @if(count($topBreakdownLine ?? []) > 0)

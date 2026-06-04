@@ -13,6 +13,7 @@ use App\Http\Controllers\TemplateExportController;
 use App\Http\Controllers\MTBFController;
 use App\Http\Controllers\CommandController;
 use App\Http\Controllers\PlannedTimeController;
+use App\Http\Controllers\ProfileController;
 
 Route::get('/', function () {
     return redirect()->route('dashboard');
@@ -137,6 +138,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/commands/test/summernote', function() {
         return view('commands.test-summernote');
     })->name('commands.test-summernote');
+    
+    // Profile
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     
     // Logout
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');

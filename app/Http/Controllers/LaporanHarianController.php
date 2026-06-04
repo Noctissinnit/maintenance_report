@@ -680,7 +680,7 @@ class LaporanHarianController extends Controller
             LaporanHarian::where('user_id', Auth::id())->delete();
         }
 
-        return redirect()->route('laporan.index')->with('success', "Berhasil menghapus {$deletedCount} laporan!");
+        return redirect()->route('laporan.list')->with('success', "Berhasil menghapus {$deletedCount} laporan!");
     }
 
     public function importForm()
@@ -764,7 +764,7 @@ class LaporanHarianController extends Controller
             }
             
             if (empty($rows)) {
-                return redirect()->route('laporan.index')->with('error', 'File Excel kosong atau format tidak sesuai');
+                return redirect()->route('laporan.list')->with('error', 'File Excel kosong atau format tidak sesuai');
             }
 
             foreach ($rows as $index => $row) {
@@ -1073,9 +1073,9 @@ class LaporanHarianController extends Controller
                 }
             }
 
-            return redirect()->route('laporan.index')->with('success', $message);
+            return redirect()->route('laporan.list')->with('success', $message);
         } catch (\Exception $e) {
-            return redirect()->route('laporan.index')->with('error', 'Error saat import: ' . $e->getMessage());
+            return redirect()->route('laporan.list')->with('error', 'Error saat import: ' . $e->getMessage());
         }
     }
 

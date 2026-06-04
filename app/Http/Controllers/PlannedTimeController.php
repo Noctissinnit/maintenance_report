@@ -67,8 +67,9 @@ class PlannedTimeController extends Controller
             11 => 'November',
             12 => 'December'
         ];
+        $activeMachinesCount = \App\Models\Machine::where('status', 'active')->count();
 
-        return view('admin.planned-times.create', compact('months'));
+        return view('admin.planned-times.create', compact('months', 'activeMachinesCount'));
     }
 
     /**
@@ -139,8 +140,9 @@ class PlannedTimeController extends Controller
             11 => 'November',
             12 => 'December'
         ];
+        $activeMachinesCount = \App\Models\Machine::where('status', 'active')->count();
 
-        return view('admin.planned-times.edit', compact('plannedTime', 'months'));
+        return view('admin.planned-times.edit', compact('plannedTime', 'months', 'activeMachinesCount'));
     }
 
     /**
