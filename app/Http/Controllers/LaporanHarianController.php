@@ -582,10 +582,12 @@ class LaporanHarianController extends Controller
         $rules = [
             'machine_id' => 'integer|exists:machines,id',
             'line_id' => 'required|integer|exists:lines,id',
+            'line_status' => 'nullable|in:on,off',
             'catatan' => 'nullable|string',
             'spare_part_id' => 'nullable|integer|exists:spare_parts,id',
-            'qty_sparepart' => 'integer|min:0',
+            'qty_sparepart' => 'numeric|min:0',
             'komentar_sparepart' => 'nullable|string',
+            'spare_parts_used' => 'nullable|string',
             'jenis_pekerjaan' => 'required|in:corrective,preventive,change over product,modifikasi,utility',
             'scope' => 'required|in:Electrik,Mekanik,Utility,Building',
             'downtime_min' => 'integer|min:0',
@@ -625,9 +627,84 @@ class LaporanHarianController extends Controller
             $validated['downtime_min'] = 0;
         }
 
+        // Handle multiple spare parts (new feature)
+        if (!empty($validated['spare_parts_used'])) {
+            try {
+                $sparePartsList = json_decode($validated['spare_parts_used'], true);
+                
+                if (is_array($sparePartsList) && !empty($sparePartsList)) {
+                    // Restore old spare parts stock first (from the existing laporan)
+                    $oldSparePartsUsed = $laporan->spare_parts_used;
+                    if ($oldSparePartsUsed && count($oldSparePartsUsed) > 0) {
+                        foreach ($oldSparePartsUsed as $oldPart) {
+                            $sparePart = SparePart::find($oldPart['id']);
+                            if ($sparePart) {
+                                $sparePart->update(['stock' => $sparePart->stock + $oldPart['qty']]);
+                            }
+                        }
+                    } elseif ($laporan->spare_part_id && $laporan->qty_sparepart > 0) {
+                        // Fallback: restore legacy single spare part stock
+                        $sparePart = SparePart::find($laporan->spare_part_id);
+                        if ($sparePart) {
+                            $sparePart->update(['stock' => $sparePart->stock + $laporan->qty_sparepart]);
+                        }
+                    }
+
+                    // Deduct stock for each new spare part
+                    foreach ($sparePartsList as $sparePartData) {
+                        $sparePart = SparePart::find($sparePartData['id']);
+                        
+                        if ($sparePart) {
+                            $oldStock = $sparePart->stock;
+                            $newStock = $oldStock - $sparePartData['qty'];
+                            
+                            if ($newStock < 0) {
+                                return redirect()->back()
+                                    ->withErrors(['spare_parts_used' => "Stok {$sparePart->name} tidak cukup! Stok tersedia: {$oldStock}"])
+                                    ->withInput();
+                            }
+                            
+                            $sparePart->update(['stock' => $newStock]);
+                        }
+                    }
+                    
+                    // Set first spare part for backward compatibility
+                    if (isset($sparePartsList[0])) {
+                        $validated['spare_part_id'] = $sparePartsList[0]['id'];
+                        $validated['qty_sparepart'] = $sparePartsList[0]['qty'];
+                        $validated['komentar_sparepart'] = $sparePartsList[0]['komentar'] ?? '';
+                    }
+                }
+            } catch (\Exception $e) {
+                return redirect()->back()
+                    ->withErrors(['spare_parts_used' => 'Error processing spare parts: ' . $e->getMessage()])
+                    ->withInput();
+            }
+        } else {
+            // If no spare parts submitted, restore old stock and clear spare parts data
+            $oldSparePartsUsed = $laporan->spare_parts_used;
+            if ($oldSparePartsUsed && count($oldSparePartsUsed) > 0) {
+                foreach ($oldSparePartsUsed as $oldPart) {
+                    $sparePart = SparePart::find($oldPart['id']);
+                    if ($sparePart) {
+                        $sparePart->update(['stock' => $sparePart->stock + $oldPart['qty']]);
+                    }
+                }
+            } elseif ($laporan->spare_part_id && $laporan->qty_sparepart > 0) {
+                $sparePart = SparePart::find($laporan->spare_part_id);
+                if ($sparePart) {
+                    $sparePart->update(['stock' => $sparePart->stock + $laporan->qty_sparepart]);
+                }
+            }
+            $validated['spare_parts_used'] = null;
+            $validated['spare_part_id'] = null;
+            $validated['qty_sparepart'] = 0;
+            $validated['komentar_sparepart'] = null;
+        }
+
         $laporan->update($validated);
 
-        return redirect()->route('laporan.index')->with('success', 'Laporan berhasil diperbarui!');
+        return redirect()->route('laporan.list')->with('success', 'Laporan berhasil diperbarui!');
     }
 
     /**
@@ -1010,8 +1087,12 @@ class LaporanHarianController extends Controller
                     $scopeNormalized = strtolower(preg_replace('/\s+/', '', $scopeRaw));
                     $scopeMap = [
                         'electrik' => 'Electrik',
+                        'electrical' => 'Electrik',
+                        'electric' => 'Electrik',
+                        'elektrik' => 'Electrik',
                         'mekanik' => 'Mekanik',
                         'mechanical' => 'Mekanik',
+                        'mecanical' => 'Mekanik',
                         'utility' => 'Utility',
                         'building' => 'Building',
                         'bangunan' => 'Building',
@@ -1224,12 +1305,18 @@ class LaporanHarianController extends Controller
             };
         }
 
-        $scopes = ['Electrik', 'Mekanik', 'Utility', 'Building'];
+        // Map each display scope to all possible database values (handles legacy/imported data)
+        $scopeAliases = [
+            'Electrik'  => ['Electrik', 'Electrical', 'Electric', 'Elektrik', 'electrical', 'electric', 'electrik', 'elektrik'],
+            'Mekanik'   => ['Mekanik', 'Mechanical', 'Mecanical', 'mechanical', 'mekanik', 'mecanical'],
+            'Utility'   => ['Utility', 'utility'],
+            'Building'  => ['Building', 'Bangunan', 'building', 'bangunan'],
+        ];
         $downtimeByScope = [];
 
-        foreach ($scopes as $scope) {
+        foreach ($scopeAliases as $scopeLabel => $variants) {
             $query = $baseQueryCallback();
-            $downtimeMinutes = $query->where('scope', $scope)
+            $downtimeMinutes = $query->whereIn('scope', $variants)
                 ->whereIn('jenis_pekerjaan', ['corrective', 'preventive', 'change over product'])
                 ->sum('downtime_min') ?? 0;
             
@@ -1237,7 +1324,7 @@ class LaporanHarianController extends Controller
             $downtimeHours = round($downtimeMinutes / 60, 2);
             
             $downtimeByScope[] = [
-                'scope' => $scope,
+                'scope' => $scopeLabel,
                 'downtime_hours' => $downtimeHours,
                 'downtime_minutes' => $downtimeMinutes
             ];

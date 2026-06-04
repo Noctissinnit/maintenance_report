@@ -92,12 +92,18 @@ class DashboardController extends Controller
             };
         }
 
-        $scopes = ['Electrik', 'Mekanik', 'Utility', 'Building'];
+        // Map each display scope to all possible database values (handles legacy/imported data)
+        $scopeAliases = [
+            'Electrik'  => ['Electrik', 'Electrical', 'Electric', 'Elektrik', 'electrical', 'electric', 'electrik', 'elektrik'],
+            'Mekanik'   => ['Mekanik', 'Mechanical', 'Mecanical', 'mechanical', 'mekanik', 'mecanical'],
+            'Utility'   => ['Utility', 'utility'],
+            'Building'  => ['Building', 'Bangunan', 'building', 'bangunan'],
+        ];
         $downtimeByScope = [];
 
-        foreach ($scopes as $scope) {
+        foreach ($scopeAliases as $scopeLabel => $variants) {
             $query = $baseQueryCallback();
-            $downtimeMinutes = $query->where('scope', $scope)
+            $downtimeMinutes = $query->whereIn('scope', $variants)
                 ->whereIn('jenis_pekerjaan', ['corrective', 'preventive', 'change over product'])
                 ->sum('downtime_min') ?? 0;
             
@@ -105,7 +111,7 @@ class DashboardController extends Controller
             $downtimeHours = round($downtimeMinutes / 60, 2);
             
             $downtimeByScope[] = [
-                'scope' => $scope,
+                'scope' => $scopeLabel,
                 'downtime_hours' => $downtimeHours,
                 'downtime_minutes' => $downtimeMinutes
             ];
@@ -196,15 +202,13 @@ class DashboardController extends Controller
         
         $totalPlannedTime = 0;
         
-       
         $plannedTimeFromReports = $baseQuery()->sum('planned_time_minutes') ?? 0;
         
         if ($plannedTimeFromReports > 0) {
-            
             $totalPlannedTime = $plannedTimeFromReports;
         } else if ($showAllTime) {
-   
-            $plannedTimes = \App\Models\PlannedTime::all()->sum('planned_time_minutes');
+            // Sum ALL planned time records
+            $plannedTimes = \App\Models\PlannedTime::sum('planned_time_minutes');
             if ($plannedTimes > 0) {
                 $totalPlannedTime = $plannedTimes;
             } else {
@@ -217,56 +221,61 @@ class DashboardController extends Controller
                     $endCarbon = \Carbon\Carbon::parse($latestReport->tanggal_laporan);
                     $totalDays = $endCarbon->diffInDays($startCarbon) + 1;
                     
-                    // Get count of active machines
                     $activeMachinesQuery = Machine::where('status', 'active');
                     if ($mesin) {
                         $activeMachinesQuery->where('name', $mesin);
                     }
-                    $activeMachinesCount = max(1, $activeMachinesQuery->count());
-                    
-                    // Formula: days × 24 hours × 60 minutes × number of active machines
-                    $totalPlannedTime = $totalDays * 24 * 60 * $activeMachinesCount;
+                    $activeMachinesCount = $activeMachinesQuery->count();
+                    $totalPlannedTime = $activeMachinesCount > 0 ? $totalDays * 24 * 60 * $activeMachinesCount : 0;
                 }
             }
         } else {
-            // For date range or specific month, try global PlannedTime table first
             if ($filterMode === 'date_range') {
-                // For date range, fallback to calculation
-                $startCarbon = \Carbon\Carbon::parse($dariTanggal);
-                $endCarbon = \Carbon\Carbon::parse($sampaiTanggal);
-                $totalDays = $endCarbon->diffInDays($startCarbon) + 1;
+                // Sum all PlannedTime records that overlap with the selected date range
+                $ptSum = \App\Models\PlannedTime::where('start_date', '<=', $sampaiTanggal)
+                    ->where('end_date', '>=', $dariTanggal)
+                    ->sum('planned_time_minutes');
                 
-                // Get count of active machines
-                $activeMachinesQuery = Machine::where('status', 'active');
-                if ($mesin) {
-                    $activeMachinesQuery->where('name', $mesin);
-                }
-                $activeMachinesCount = max(1, $activeMachinesQuery->count());
-                
-                // Formula: days × 24 hours × 60 minutes × number of active machines
-                $totalPlannedTime = $totalDays * 24 * 60 * $activeMachinesCount;
-            } else {
-                // For specific month, check global PlannedTime database
-                $plannedTimeRecord = \App\Models\PlannedTime::where('year', $tahun)
-                    ->where('month', $bulan)
-                    ->first();
-                
-                if ($plannedTimeRecord) {
-                    // Use manually entered planned time from PPIC
-                    $totalPlannedTime = $plannedTimeRecord->planned_time_minutes;
+                if ($ptSum > 0) {
+                    $totalPlannedTime = $ptSum;
                 } else {
-                    // Fallback: calculate from days in month and active machines
-                    $daysInMonth = \Carbon\Carbon::create($tahun, $bulan)->daysInMonth;
+                    // Fallback: calculate from days and active machines
+                    $startCarbon = \Carbon\Carbon::parse($dariTanggal);
+                    $endCarbon = \Carbon\Carbon::parse($sampaiTanggal);
+                    $totalDays = $endCarbon->diffInDays($startCarbon) + 1;
                     
-                    // Get count of active machines
                     $activeMachinesQuery = Machine::where('status', 'active');
                     if ($mesin) {
                         $activeMachinesQuery->where('name', $mesin);
                     }
-                    $activeMachinesCount = max(1, $activeMachinesQuery->count());
+                    $activeMachinesCount = $activeMachinesQuery->count();
+                    $totalPlannedTime = $activeMachinesCount > 0 ? $totalDays * 24 * 60 * $activeMachinesCount : 0;
+                }
+            } else {
+                // For specific month: sum all PlannedTime records that overlap with the month
+                $monthStart = \Carbon\Carbon::create($tahun, $bulan, 1)->startOfMonth()->toDateString();
+                $monthEnd = \Carbon\Carbon::create($tahun, $bulan, 1)->endOfMonth()->toDateString();
+                
+                $ptSum = \App\Models\PlannedTime::where('start_date', '<=', $monthEnd)
+                    ->where('end_date', '>=', $monthStart)
+                    ->sum('planned_time_minutes');
+                
+                if ($ptSum > 0) {
+                    $totalPlannedTime = $ptSum;
+                } else {
+                    // Fallback: calculate from days in month and active machines
+                    $activeMachinesQuery = Machine::where('status', 'active');
+                    if ($mesin) {
+                        $activeMachinesQuery->where('name', $mesin);
+                    }
+                    $activeMachinesCount = $activeMachinesQuery->count();
                     
-                    // Formula: days × 24 hours × 60 minutes × number of active machines
-                    $totalPlannedTime = $daysInMonth * 24 * 60 * $activeMachinesCount;
+                    if ($activeMachinesCount > 0) {
+                        $daysInMonth = \Carbon\Carbon::create($tahun, $bulan)->daysInMonth;
+                        $totalPlannedTime = $daysInMonth * 24 * 60 * $activeMachinesCount;
+                    } else {
+                        $totalPlannedTime = 0;
+                    }
                 }
             }
         }
@@ -478,27 +487,30 @@ class DashboardController extends Controller
         // Calculate Planned time from database if available, otherwise calculate automatically
         // REVISION: Planned Time can be set manually by administrator
         
-        // For specific month, check database first, then fallback to calculation
-        $plannedTimeRecord = \App\Models\PlannedTime::where('year', $tahun)
-            ->where('month', $bulan)
-            ->first();
+        // For specific month: sum all PlannedTime records that overlap with the month
+        $monthStart = \Carbon\Carbon::create($tahun, $bulan, 1)->startOfMonth()->toDateString();
+        $monthEnd = \Carbon\Carbon::create($tahun, $bulan, 1)->endOfMonth()->toDateString();
         
-        if ($plannedTimeRecord) {
-            // Use manually entered planned time
-            $totalPlannedTime = $plannedTimeRecord->planned_time_minutes;
+        $ptSum = \App\Models\PlannedTime::where('start_date', '<=', $monthEnd)
+            ->where('end_date', '>=', $monthStart)
+            ->sum('planned_time_minutes');
+        
+        if ($ptSum > 0) {
+            $totalPlannedTime = $ptSum;
         } else {
             // Fallback: calculate from days in month and active machines
-            $daysInMonth = \Carbon\Carbon::create($tahun, $bulan)->daysInMonth;
-            
-            // Get count of active machines
             $activeMachinesQuery = Machine::where('status', 'active');
             if ($mesin) {
                 $activeMachinesQuery->where('name', $mesin);
             }
-            $activeMachinesCount = max(1, $activeMachinesQuery->count());
+            $activeMachinesCount = $activeMachinesQuery->count();
             
-            // Formula: days × 24 hours × 60 minutes × number of active machines
-            $totalPlannedTime = $daysInMonth * 24 * 60 * $activeMachinesCount;
+            if ($activeMachinesCount > 0) {
+                $daysInMonth = \Carbon\Carbon::create($tahun, $bulan)->daysInMonth;
+                $totalPlannedTime = $daysInMonth * 24 * 60 * $activeMachinesCount;
+            } else {
+                $totalPlannedTime = 0;
+            }
         }
         
         // Total Breakdown = jumlah laporan corrective dengan downtime

@@ -25,15 +25,23 @@ class PlannedTimeController extends Controller
     {
         $this->checkAdminAuthorization();
         
-        // Get all planned times, optionally filtered by year
+        // Get filter params
         $yearFilter = request('year');
+        $monthFilter = request('month');
+        
         $query = PlannedTime::with('creator')
-            ->orderBy('year', 'desc')
-            ->orderBy('month', 'desc');
+            ->orderBy('start_date', 'desc');
 
         if ($yearFilter) {
             $query->where('year', $yearFilter);
         }
+        
+        if ($monthFilter) {
+            $query->where('month', $monthFilter);
+        }
+
+        // Clone query for total before pagination
+        $totalPlannedMinutes = (clone $query)->sum('planned_time_minutes');
 
         $plannedTimes = $query->paginate(20);
 
@@ -44,7 +52,14 @@ class PlannedTimeController extends Controller
             ->reverse()
             ->values();
 
-        return view('admin.planned-times.index', compact('plannedTimes', 'years', 'yearFilter'));
+        $months = [
+            1 => 'January', 2 => 'February', 3 => 'March',
+            4 => 'April', 5 => 'May', 6 => 'June',
+            7 => 'July', 8 => 'August', 9 => 'September',
+            10 => 'October', 11 => 'November', 12 => 'December'
+        ];
+
+        return view('admin.planned-times.index', compact('plannedTimes', 'years', 'yearFilter', 'monthFilter', 'months', 'totalPlannedMinutes'));
     }
 
     /**
@@ -87,23 +102,9 @@ class PlannedTimeController extends Controller
 
         // Extract year and month from start_date
         $startDate = \Carbon\Carbon::parse($validated['start_date']);
-        $year = $startDate->year;
-        $month = $startDate->month;
-
-        // Check if planned time for this month/year already exists
-        $existing = PlannedTime::where('year', $year)
-            ->where('month', $month)
-            ->first();
-
-        if ($existing) {
-            return back()
-                ->withInput()
-                ->withErrors(['duplicate' => 'Planned time for this month/year already exists. Please edit it instead.']);
-        }
-
         $validated['created_by'] = Auth::id();
-        $validated['year'] = $year;
-        $validated['month'] = $month;
+        $validated['year'] = $startDate->year;
+        $validated['month'] = $startDate->month;
 
         PlannedTime::create($validated);
 
