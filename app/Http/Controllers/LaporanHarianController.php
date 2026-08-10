@@ -774,8 +774,27 @@ class LaporanHarianController extends Controller
             $errorMessages = [];
             $infoMessages = [];
 
-            // Load spreadsheet using PhpOffice
-            $spreadsheet = IOFactory::load($file->getPathname());
+            // Load spreadsheet using PhpOffice with explicit reader type to avoid ZipArchive issues
+            $extension = strtolower($file->getClientOriginalExtension());
+            $readerMap = [
+                'xlsx' => 'Xlsx',
+                'xls'  => 'Xls',
+                'csv'  => 'Csv',
+            ];
+
+            if (!isset($readerMap[$extension])) {
+                return redirect()->route('laporan.list')->with('error', 'Format file tidak didukung. Gunakan .xlsx, .xls, atau .csv');
+            }
+
+            if ($extension === 'xlsx' && !class_exists('ZipArchive')) {
+                return redirect()->route('laporan.list')->with('error', 
+                    'PHP extension "zip" tidak aktif di server. Aktifkan extension=zip di php.ini lalu restart server, atau upload file dalam format .xls / .csv.'
+                );
+            }
+
+            $reader = IOFactory::createReader($readerMap[$extension]);
+            $reader->setReadDataOnly(true);
+            $spreadsheet = $reader->load($file->getPathname());
             $worksheet = $spreadsheet->getActiveSheet();
             $rows = [];
             $headerRow = null;

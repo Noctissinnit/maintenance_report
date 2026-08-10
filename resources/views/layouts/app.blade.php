@@ -17,16 +17,17 @@
             --primary-color: #4361ee;
             --primary-light: #6c8cff;
             --primary-dark: #1e40af;
-            --secondary-color: #7b9fff;
+            --secondary-color: #7209b7;
             --accent-color: #ff9f1c;
-            --text-dark: #2c3e50;
-            --text-light: #ecf0f1;
-            --bg-light: #f8f9fa;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --bg-light: #f8fafc;
             --bg-white: #ffffff;
-            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
-            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
-            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --border-radius: 12px;
         }
         
         * {
@@ -42,10 +43,12 @@
         
         /* Navbar Styling */
         .navbar {
-            background: linear-gradient(90deg, var(--primary-dark) 0%, var(--primary-color) 50%, var(--primary-light) 100%);
-            box-shadow: 0 2px 12px rgba(45, 80, 22, 0.2);
-            padding: 0.6rem 0;
-            border-bottom: none;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+            padding: 0.75rem 0;
             position: fixed;
             top: 0;
             right: 0;
@@ -56,14 +59,14 @@
         
         /* Navbar adjustment when sidebar is collapsed */
         .navbar.navbar-collapsed {
-            left: 0;
+            left: 80px;
         }
         
         .navbar-brand {
             font-weight: 700;
-            font-size: 1.2rem;
-            color: var(--text-light) !important;
-            letter-spacing: 0.5px;
+            font-size: 1.25rem;
+            color: var(--text-dark) !important;
+            letter-spacing: -0.5px;
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -71,8 +74,11 @@
             margin: 0;
         }
         
-        .navbar-brand i {
-            font-size: 1.35rem;
+        .navbar-logo-img {
+            height: 32px;
+            width: auto;
+            object-fit: contain;
+            margin-right: 0.25rem;
         }
         
         @keyframes slideDown {
@@ -96,16 +102,21 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 0.5rem;
-            backdrop-filter: blur(10px);
+            padding: 0.45rem 1rem;
+            background: rgba(241, 245, 249, 0.8);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+        }
+        
+        .navbar-user-info:hover {
+            background: rgba(226, 232, 240, 0.9) !important;
         }
         
         .navbar-user-name {
-            color: var(--text-light);
+            color: var(--text-dark);
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 0.875rem;
             margin: 0;
         }
         
@@ -113,68 +124,31 @@
             width: 32px;
             height: 32px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--secondary-color), var(--accent-color));
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-weight: 700;
             font-size: 0.85rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            box-shadow: var(--shadow-sm);
         }
         
-        .btn-logout {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1.5px solid rgba(255, 255, 255, 0.3);
-            color: var(--text-light) !important;
-            padding: 0.45rem 0.9rem;
-            border-radius: 0.5rem;
+        .dropdown-menu .dropdown-item {
             font-weight: 500;
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        
-        .btn-logout:hover {
-            background: rgba(255, 255, 255, 0.25);
-            border-color: rgba(255, 255, 255, 0.5);
-            backdrop-filter: blur(10px);
-            transform: translateY(-2px);
-        }
-        
-        .btn-logout i {
-            font-size: 0.95rem;
-        }
-        
-        /* Navbar User Dropdown */
-        .navbar-user-info {
-            cursor: pointer;
-        }
-        
-        .navbar-user-info:hover {
-            background: rgba(255, 255, 255, 0.18) !important;
-        }
-        
-        .navbar-user-info .bi-chevron-down {
-            transition: transform 0.25s ease;
-        }
-        
-        .navbar-user-info[aria-expanded="true"] .bi-chevron-down {
-            transform: rotate(180deg);
+            border-radius: 6px;
+            margin: 0.2rem 0.5rem;
+            width: calc(100% - 1rem);
         }
         
         .dropdown-menu .dropdown-item:hover {
-            background-color: #f0f2f7;
+            background-color: #f1f5f9;
         }
         
         .dropdown-menu .dropdown-item.text-danger:hover {
-            background-color: #fceded;
+            background-color: #fef2f2;
         }
 
-        
         /* Sidebar Styling */
         .sidebar-wrapper {
             position: fixed;
@@ -182,49 +156,122 @@
             left: 0;
             width: 270px;
             height: 100vh;
-            background: linear-gradient(180deg, #ffffff 0%, #f5f7fb 100%);
+            background: var(--bg-white);
             color: var(--text-dark);
-            padding: 1.5rem 1.25rem;
-            box-shadow: var(--shadow-lg);
+            padding: 1.5rem 1.15rem;
+            box-shadow: var(--shadow-sm);
             overflow-y: auto;
             z-index: 1001;
             transform: translateX(0);
-            border-right: 2px solid #e8ecf1;
+            border-right: 1px solid rgba(226, 232, 240, 0.8);
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
-        .sidebar-wrapper.collapsed {
-            transform: translateX(-100%);
-            width: 0;
-            padding: 0;
-        }
-        
-        .sidebar-toggle {
-            position: fixed;
-            top: 75px;
-            left: 290px;
-            z-index: 989;
-            background: var(--primary-color);
-            border: none;
-            color: white;
-            width: 42px;
-            height: 42px;
-            border-radius: 0.5rem;
+        /* Sidebar Brand */
+        .sidebar-brand-wrapper {
             display: flex;
             align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: var(--shadow-md);
-            transition: var(--transition);
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+            padding-left: 0.5rem;
+            overflow: hidden;
+        }
+        .sidebar-logo-img {
+            height: 38px;
+            width: auto;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+        .sidebar-brand-wrapper .brand-text {
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-brand-wrapper .brand-name {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            color: var(--text-dark);
+            font-size: 1.2rem;
+            line-height: 1.1;
+        }
+        .sidebar-brand-wrapper .brand-sub {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
-        .sidebar-toggle:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-        }
-        
-        .sidebar-wrapper.collapsed ~ .sidebar-toggle {
-            left: 20px;
+        /* Desktop Collapse */
+        @media (min-width: 768px) {
+            .sidebar-wrapper.collapsed {
+                width: 80px;
+                padding: 1.5rem 0.5rem;
+            }
+            
+            .sidebar-wrapper.collapsed .sidebar-brand-wrapper {
+                padding-left: 0;
+                justify-content: center;
+            }
+            
+            .sidebar-wrapper.collapsed .sidebar-brand-wrapper .brand-text {
+                display: none;
+            }
+            
+            .sidebar-wrapper.collapsed ~ .main-content {
+                margin-left: 80px;
+            }
+            
+            .sidebar-wrapper.collapsed .nav-text {
+                display: none;
+            }
+            
+            .sidebar-wrapper.collapsed .sidebar-nav-title {
+                text-align: center;
+                font-size: 0;
+                height: 1px;
+                background: rgba(226, 232, 240, 0.8);
+                margin: 1.5rem 0.5rem;
+                padding: 0;
+                letter-spacing: 0;
+            }
+            
+            .sidebar-wrapper.collapsed .sidebar-nav-link {
+                justify-content: center;
+                padding: 0.75rem 0;
+            }
+            
+            .sidebar-wrapper.collapsed .sidebar-nav-link i {
+                margin-right: 0;
+                font-size: 1.2rem;
+            }
+            
+            /* CSS Tooltip on Collapse */
+            .sidebar-wrapper.collapsed .sidebar-nav-link::after {
+                content: attr(data-tooltip);
+                position: absolute;
+                left: 80px;
+                top: 50%;
+                transform: translateY(-50%) translateX(-10px);
+                background-color: var(--text-dark);
+                color: white;
+                padding: 0.4rem 0.75rem;
+                border-radius: 6px;
+                font-size: 0.8rem;
+                font-weight: 500;
+                white-space: nowrap;
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none;
+                box-shadow: var(--shadow-md);
+                z-index: 9999;
+                transition: opacity 0.2s, transform 0.2s;
+            }
+            
+            .sidebar-wrapper.collapsed .sidebar-nav-link:hover::after {
+                opacity: 1;
+                visibility: visible;
+                transform: translateY(-50%) translateX(0);
+            }
         }
         
         /* Sidebar Navigation */
@@ -239,10 +286,11 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            color: #999;
-            margin-top: 1.75rem;
-            margin-bottom: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
             padding-left: 0.5rem;
+            font-family: 'Outfit', sans-serif;
         }
         
         .sidebar-nav-title:first-child {
@@ -250,33 +298,32 @@
         }
         
         .sidebar-nav-link {
-            color: #666;
+            color: var(--slate-700);
             text-decoration: none;
             display: flex;
             align-items: center;
-            padding: 0.875rem 1.125rem;
-            border-radius: 0.625rem;
-            font-size: 0.95rem;
-            border-left: 3px solid transparent;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 0.925rem;
             cursor: pointer;
             font-weight: 500;
             position: relative;
             transition: var(--transition);
+            border-left: 3px solid transparent;
         }
         
         .sidebar-nav-link i {
-            width: 1.2rem;
-            margin-right: 0.875rem;
+            width: 1.25rem;
+            margin-right: 0.85rem;
             text-align: center;
             font-size: 1.1rem;
-            color: #999;
+            color: var(--text-muted);
         }
         
         .sidebar-nav-link:hover {
-            background-color: #f0f2f7;
+            background-color: #f1f5f9;
             color: var(--primary-color);
-            border-left-color: var(--primary-color);
-            padding-left: 1.25rem;
+            padding-left: 1.15rem;
         }
         
         .sidebar-nav-link:hover i {
@@ -284,11 +331,11 @@
         }
         
         .sidebar-nav-link.active {
-            background: linear-gradient(90deg, rgba(67, 97, 238, 0.1), transparent);
+            background: rgba(67, 97, 238, 0.08);
             color: var(--primary-color);
             border-left-color: var(--primary-color);
             font-weight: 600;
-            padding-left: 1.25rem;
+            padding-left: 1.15rem;
         }
         
         .sidebar-nav-link.active i {
@@ -298,15 +345,15 @@
         /* Main Content */
         .main-content {
             margin-left: 270px;
-            margin-top: 60px;
+            margin-top: 66px;
             padding: 2.5rem;
-            min-height: calc(100vh - 60px);
+            min-height: calc(100vh - 66px);
             background-color: var(--bg-light);
             transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         .sidebar-wrapper.collapsed ~ .main-content {
-            margin-left: 0;
+            margin-left: 80px;
         }
         
         /* Card Styling */
@@ -625,32 +672,38 @@
         /* Responsive */
         @media (max-width: 768px) {
             .navbar {
-                left: 0;
+                left: 0 !important;
+                padding: 0.5rem 0;
             }
             
             .sidebar-wrapper {
-                width: 100%;
-                padding: 1rem;
-                height: 100vh;
-                top: 0;
-            }
-            
-            .sidebar-toggle {
-                display: flex !important;
                 position: fixed;
-                top: 1rem;
-                left: 1rem;
-                z-index: 1002;
+                top: 0;
+                left: 0;
+                width: 270px;
+                height: 100vh;
+                transform: translateX(-100%);
+                z-index: 1050;
+                box-shadow: none;
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             }
             
-            .main-content {
-                margin-left: 0;
-                margin-top: 70px;
-                padding: 1.5rem;
+            .sidebar-wrapper:not(.collapsed) {
+                transform: translateX(0);
+                box-shadow: var(--shadow-lg);
             }
             
             .sidebar-wrapper.collapsed {
-                display: none;
+                transform: translateX(-100%);
+                width: 270px;
+                padding: 1.5rem 1.15rem;
+                display: block;
+            }
+            
+            .main-content {
+                margin-left: 0 !important;
+                margin-top: 70px;
+                padding: 1.25rem;
             }
             
             .navbar-user-info {
@@ -666,6 +719,26 @@
             
             .btn-logout span {
                 display: none;
+            }
+            
+            /* Backdrop overlay for mobile */
+            .sidebar-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(15, 23, 42, 0.4);
+                backdrop-filter: blur(4px);
+                z-index: 1040;
+                opacity: 0;
+                visibility: hidden;
+                transition: var(--transition);
+            }
+            
+            .sidebar-wrapper:not(.collapsed) ~ .sidebar-overlay {
+                opacity: 1;
+                visibility: visible;
             }
         }
         
@@ -693,10 +766,15 @@
     @livewireStyles
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark">
+    <nav class="navbar navbar-expand-lg">
         <div class="container-fluid px-4">
+            <!-- Sidebar Toggle Button inside Navbar -->
+            <button class="btn btn-link me-3 p-0" id="sidebarToggle" title="Toggle Sidebar" style="font-size: 1.5rem; display: flex; align-items: center; color: var(--text-dark);">
+                <i class="bi bi-list"></i>
+            </button>
+
             <a class="navbar-brand" href="{{ route('dashboard') }}">
-                <i class="bi bi-gear-fill"></i>
+                <img src="{{ asset('images/ahs.png') }}" alt="Logo AHS" class="navbar-logo-img">
                 <span>Maintenance</span>
             </a>
             
@@ -706,13 +784,13 @@
                         <div class="navbar-user-avatar">
                             {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
                         </div>
-                        <div>
+                        <div class="d-none d-sm-block">
                             <p class="navbar-user-name mb-0">{{ Auth::user()->name }}</p>
-                            <small style="color: rgba(255,255,255,0.7);">
+                            <small class="navbar-user-role">
                                 {{ ucfirst(str_replace('_', ' ', Auth::user()->getRoleNames()[0] ?? 'User')) }}
                             </small>
                         </div>
-                        <i class="bi bi-chevron-down ms-2" style="color: rgba(255,255,255,0.7); font-size: 0.75rem;"></i>
+                        <i class="bi bi-chevron-down ms-1" style="font-size: 0.75rem;"></i>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="border-radius: 0.75rem; min-width: 220px; margin-top: 0.5rem; overflow: hidden;" aria-labelledby="navbarUserDropdown">
                         <li class="px-3 py-2" style="background: linear-gradient(135deg, #f8f9fb, #eef1f8); border-bottom: 1px solid #e8ecf1;">
@@ -722,7 +800,7 @@
                                 </div>
                                 <div>
                                     <div style="font-weight: 600; font-size: 0.875rem; color: var(--text-dark);">{{ Auth::user()->name }}</div>
-                                    <div style="font-size: 0.75rem; color: #999;">{{ Auth::user()->email }}</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">{{ Auth::user()->email }}</div>
                                 </div>
                             </div>
                         </li>
@@ -748,56 +826,58 @@
         </div>
     </nav>
 
-    <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">
-        <i class="bi bi-list"></i>
-    </button>
-
     <div class="sidebar-wrapper" id="sidebarWrapper">
+        <!-- Sidebar Brand Wrapper (only visible on desktop) -->
+        <div class="sidebar-brand-wrapper">
+            <img src="{{ asset('images/ahs.png') }}" alt="Logo AHS" class="sidebar-logo-img">
+            <div class="brand-text">
+                <span class="brand-name">AHS</span>
+                <span class="brand-sub">Maintenance Hub</span>
+            </div>
+        </div>
+
         <div class="sidebar-nav">
             {{-- Dashboard untuk Admin, Department Head, dan Supervisor --}}
             @if(Auth::user()->hasAnyRole(['admin', 'department_head', 'supervisor']))
                 <div class="sidebar-nav-title">Main</div>
-                <a href="{{ route('dashboard') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'dashboard') active @endif">
-                    <i class="bi bi-speedometer2"></i> Dashboard
+                <a href="{{ route('dashboard') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'dashboard') active @endif" data-tooltip="Dashboard">
+                    <i class="bi bi-speedometer2"></i> <span class="nav-text">Dashboard</span>
                 </a>
-                {{-- <a href="{{ route('laporan.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'laporan.index') active @endif">
-                    <i class="bi bi-file-earmark-text"></i> Dashboard Laporan
-                </a> --}}
             @endif
 
             {{-- Dashboard untuk Operator --}}
             @if(Auth::user()->hasRole('operator'))
                 <div class="sidebar-nav-title">Main</div>
-                <a href="{{ route('dashboard') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'dashboard') active @endif">
-                    <i class="bi bi-speedometer2"></i> Dashboard
+                <a href="{{ route('dashboard') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'dashboard') active @endif" data-tooltip="Dashboard">
+                    <i class="bi bi-speedometer2"></i> <span class="nav-text">Dashboard</span>
                 </a>
             @endif
 
             {{-- Laporan untuk Operator, Supervisor, dan Admin --}}
             @if(Auth::user()->hasAnyRole(['operator', 'supervisor','admin']))
                 <div class="sidebar-nav-title">Laporan</div>
-                <a href="{{ route('laporan.list') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'laporan.list') active @endif">
-                    <i class="bi bi-list-ul"></i> Laporan Saya
+                <a href="{{ route('laporan.list') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'laporan.list') active @endif" data-tooltip="Laporan Saya">
+                    <i class="bi bi-list-ul"></i> <span class="nav-text">Laporan Saya</span>
                 </a>
               
-                <a href="{{ route('laporan.create') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'laporan.create') active @endif">
-                    <i class="bi bi-plus-circle"></i> Input Laporan
+                <a href="{{ route('laporan.create') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'laporan.create') active @endif" data-tooltip="Input Laporan">
+                    <i class="bi bi-plus-circle"></i> <span class="nav-text">Input Laporan</span>
                 </a>
             @endif
 
             {{-- MTBF Analysis untuk supervisor, department_head, dan admin --}}
             @if(Auth::user()->hasAnyRole(['admin', 'department_head', 'supervisor']))
                 <div class="sidebar-nav-title">Analytics</div>
-                <a href="{{ route('mtbf.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'mtbf.index' || Route::current()->getName() === 'mtbf.show') active @endif">
-                    <i class="bi bi-speedometer2"></i> MTBF Analysis
+                <a href="{{ route('mtbf.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'mtbf.index' || Route::current()->getName() === 'mtbf.show') active @endif" data-tooltip="MTBF Analysis">
+                    <i class="bi bi-speedometer2"></i> <span class="nav-text">MTBF Analysis</span>
                 </a>
             @endif
 
             {{-- Planned Time Management untuk Department Head (PPIC) --}}
             @if(Auth::user()->hasRole('department_head'))
                 <div class="sidebar-nav-title">PPIC Planning</div>
-                <a href="{{ route('planned-times.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'planned-times.index' || Route::current()->getName() === 'planned-times.create' || Route::current()->getName() === 'planned-times.edit') active @endif">
-                    <i class="bi bi-calendar-event"></i> Planned Time
+                <a href="{{ route('planned-times.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'planned-times.index' || Route::current()->getName() === 'planned-times.create' || Route::current()->getName() === 'planned-times.edit') active @endif" data-tooltip="Planned Time">
+                    <i class="bi bi-calendar-event"></i> <span class="nav-text">Planned Time</span>
                 </a>
             @endif
 
@@ -805,19 +885,19 @@
             @if(Auth::user()->hasAnyRole(['department_head', 'supervisor', 'admin']))
                 <div class="sidebar-nav-title">Command Management</div>
                 @if(Auth::user()->hasRole('department_head'))
-                    <a href="{{ route('commands.list-department-head') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'commands.list-department-head' || Route::current()->getName() === 'commands.create' || Route::current()->getName() === 'commands.edit') active @endif">
-                        <i class="bi bi-list-check"></i> Command Department Head
+                    <a href="{{ route('commands.list-department-head') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'commands.list-department-head' || Route::current()->getName() === 'commands.create' || Route::current()->getName() === 'commands.edit') active @endif" data-tooltip="Command Dept Head">
+                        <i class="bi bi-list-check"></i> <span class="nav-text">Command Dept Head</span>
                     </a>
                 @endif
                
                 @if(Auth::user()->hasRole('supervisor'))
-                    <a href="{{ route('commands.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'commands.index' || Route::current()->getName() === 'commands.edit-status') active @endif">
-                        <i class="bi bi-clipboard-check"></i> Command Supervision
+                    <a href="{{ route('commands.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'commands.index' || Route::current()->getName() === 'commands.edit-status') active @endif" data-tooltip="Command Supervision">
+                        <i class="bi bi-clipboard-check"></i> <span class="nav-text">Command Supervision</span>
                     </a>
                 @endif
                 @if(Auth::user()->hasRole('admin'))
-                    <a href="{{ route('commands.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'commands.index' || Route::current()->getName() === 'commands.edit-status') active @endif">
-                        <i class="bi bi-clipboard-check"></i> Supervisi Command
+                    <a href="{{ route('commands.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'commands.index' || Route::current()->getName() === 'commands.edit-status') active @endif" data-tooltip="Supervisi Command">
+                        <i class="bi bi-clipboard-check"></i> <span class="nav-text">Supervisi Command</span>
                     </a>
                 @endif
             @endif
@@ -825,37 +905,40 @@
             {{-- Management Menu untuk Admin saja --}}
             @if(Auth::user()->can('manage_employees'))
                 <div class="sidebar-nav-title">Management</div>
-                <a href="{{ route('employees.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'employees.index') active @endif">
-                    <i class="bi bi-people"></i> Operator
+                <a href="{{ route('employees.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'employees.index') active @endif" data-tooltip="Operator">
+                    <i class="bi bi-people"></i> <span class="nav-text">Operator</span>
                 </a>
             @endif
 
             {{-- Produksi Menu untuk Admin saja --}}
             @if(Auth::user()->can('manage_machines'))
                 <div class="sidebar-nav-title">Produksi</div>
-                <a href="{{ route('lines.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'lines.index') active @endif">
-                    <i class="bi bi-diagram-3"></i> Line
+                <a href="{{ route('lines.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'lines.index') active @endif" data-tooltip="Line">
+                    <i class="bi bi-diagram-3"></i> <span class="nav-text">Line</span>
                 </a>
-                <a href="{{ route('machines.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'machines.index') active @endif">
-                    <i class="bi bi-gear"></i> Mesin
+                <a href="{{ route('machines.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'machines.index') active @endif" data-tooltip="Mesin">
+                    <i class="bi bi-gear"></i> <span class="nav-text">Mesin</span>
                 </a>
-                <a href="{{ route('planned-times.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'planned-times.index' || Route::current()->getName() === 'planned-times.create') active @endif">
-                    <i class="bi bi-calendar-event"></i> Planned Time
+                <a href="{{ route('planned-times.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'planned-times.index' || Route::current()->getName() === 'planned-times.create') active @endif" data-tooltip="Planned Time">
+                    <i class="bi bi-calendar-event"></i> <span class="nav-text">Planned Time</span>
                 </a>
             @endif
 
             {{-- Inventory Menu untuk Admin saja --}}
             @if(Auth::user()->can('manage_spare_parts'))
                 <div class="sidebar-nav-title">Inventory</div>
-                <a href="{{ route('spare-parts.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'spare-parts.index') active @endif">
-                    <i class="bi bi-box-seam"></i> Spare Part
+                <a href="{{ route('spare-parts.index') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'spare-parts.index') active @endif" data-tooltip="Spare Part">
+                    <i class="bi bi-box-seam"></i> <span class="nav-text">Spare Part</span>
                 </a>
-                <a href="{{ route('spare-parts.monitoring') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'spare-parts.monitoring') active @endif">
-                    <i class="bi bi-graph-up"></i> Monitoring Sparepart
+                <a href="{{ route('spare-parts.monitoring') }}" class="sidebar-nav-link @if(Route::current()->getName() === 'spare-parts.monitoring') active @endif" data-tooltip="Monitoring Sparepart">
+                    <i class="bi bi-graph-up"></i> <span class="nav-text">Monitoring Sparepart</span>
                 </a>
             @endif
         </div>
     </div>
+
+    <!-- Mobile Sidebar Backdrop Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <div class="main-content">
         @if(session('success'))
@@ -918,35 +1001,52 @@
         }
     </script>
     <script>
-        // Sidebar Toggle
-        document.getElementById('sidebarToggle').addEventListener('click', function() {
-            const sidebar = document.getElementById('sidebarWrapper');
-            const navbar = document.querySelector('.navbar');
-            sidebar.classList.toggle('collapsed');
+        // Sidebar Toggle Logic
+        const sidebarToggleBtn = document.getElementById('sidebarToggle');
+        const sidebarWrapper = document.getElementById('sidebarWrapper');
+        const navbar = document.querySelector('.navbar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        function toggleSidebar() {
+            sidebarWrapper.classList.toggle('collapsed');
             navbar.classList.toggle('navbar-collapsed');
-            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
-        });
+            localStorage.setItem('sidebarCollapsed', sidebarWrapper.classList.contains('collapsed'));
+        }
+
+        if (sidebarToggleBtn) {
+            sidebarToggleBtn.addEventListener('click', toggleSidebar);
+        }
+        
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', function() {
+                sidebarWrapper.classList.add('collapsed');
+                navbar.classList.add('navbar-collapsed');
+                localStorage.setItem('sidebarCollapsed', 'true');
+            });
+        }
         
         // Restore sidebar state
         if (localStorage.getItem('sidebarCollapsed') === 'true') {
-            const sidebar = document.getElementById('sidebarWrapper');
-            const navbar = document.querySelector('.navbar');
-            sidebar.classList.add('collapsed');
+            sidebarWrapper.classList.add('collapsed');
             navbar.classList.add('navbar-collapsed');
+        } else {
+            // Expand by default if not collapsed in storage
+            sidebarWrapper.classList.remove('collapsed');
+            navbar.classList.remove('navbar-collapsed');
         }
         
         // Close sidebar when clicking on a link (mobile)
         document.querySelectorAll('.sidebar-nav-link').forEach(link => {
             link.addEventListener('click', function() {
                 if (window.innerWidth < 768) {
-                    const sidebar = document.getElementById('sidebarWrapper');
-                    const navbar = document.querySelector('.navbar');
-                    sidebar.classList.add('collapsed');
+                    sidebarWrapper.classList.add('collapsed');
                     navbar.classList.add('navbar-collapsed');
+                    localStorage.setItem('sidebarCollapsed', 'true');
                 }
             });
         });
-        
+    </script>    
+    <script>
         // Select2 Initialization
         $(document).ready(function() {
             console.log('jQuery ready - Initializing Summernote and Select2');
